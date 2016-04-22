@@ -1,0 +1,15 @@
+MIST copyright 2016 by Yujin Chung and Jody Hey
+
+
+MIST has been written using the OpenMPI-C++ framework, and can be compiled using standard MPI favors of the GNU compiler (including mpicc and mpicxx). OpenMPI must be installed. Also once installed, please make sure that the ``bin'' directory of OpenMPI is added to your machine's path.
+
+Then compile the software with this command.
+
+mpicxx -std=c++11 *.cpp *.cc -o MIST
+
+
+If your machine has different compiler versions, for example c++0x, then use this command.
+
+mpicxx -std=c++0x *.cpp *.cc -o MIST
+
+This will compile program MIST. 
