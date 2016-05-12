@@ -2073,19 +2073,30 @@ void Chain::initializeLmode(IM im, unsigned int crrProcID, unsigned int nProcs)
 
 
 
-void Chain::prepare_Lmode(popTree* poptree)
+void Chain::prepare_Lmode(popTree* poptree, IM im)
 {
   // std::cout << "poptree->get_age() = " << poptree->get_age()<<"\n";
-  compute_observedStates_fromTopo();
-  if(poptree->get_age() > 0) // not a single population
+  if(im.get_migRateMax()!=0)
     {
-      compute_stateSpaces(poptree->size());
-      //	compute_possiblePaths(poptree->size());
-      compute_possiblePaths_nPossibleCoalEvents(poptree->size());
-      compute_coefficientsOfElementsInTransitionRateMat(poptree->size());
+      compute_observedStates_fromTopo();
+      if(poptree->get_age() > 0) // not a single population
+	{
+	  compute_stateSpaces(poptree->size());
+	  //	compute_possiblePaths(poptree->size());
+	  compute_possiblePaths_nPossibleCoalEvents(poptree->size());
+	  compute_coefficientsOfElementsInTransitionRateMat(poptree->size());
+	}
+      compute_numTrees(poptree->size());
+      compute_numSameCoalEvents_inAncPop();
     }
-  compute_numTrees(poptree->size());
-  compute_numSameCoalEvents_inAncPop();
+  /*
+  else
+    {
+      unsigned int nTrees = list_trees.size();
+      for(unsigned int i=0; i<nTrees; i++)
+	list_trees.at(i)->assignNodeLabel();
+    }  
+  */
 }
 
 // Computing the term of the number of same coalescent events in the ancestral population
@@ -3957,6 +3968,251 @@ double Chain::compute_conditionalProb(unsigned int id_sample, unsigned int id_lo
 }
 
 
+void nodeSimple::assign_age_nodeLabel_popSize(std::vector<double> coalT, std::vector<double> allPopSize, double splittingTime)
+{
+  unsigned int nGeneCopies = coalT.size()+1; 
+  if(rank > nGeneCopies)
+    {
+      isTip =0;
+      firstChild->assign_age_nodeLabel_popSize(coalT,allPopSize,splittingTime);
+      secondChild->assign_age_nodeLabel_popSize(coalT,allPopSize,splittingTime);    
+    }
+  else
+    isTip =1;
+
+  if(rank <= nGeneCopies)
+    age =0;
+  else
+    age = coalT.at(rank-1-nGeneCopies);
+  // std::cout <<"rank = "<< rank << " age = "<< age<<"\n";
+
+  // determine 'nodeLabel' 
+  if(age!=0)
+    {
+      int label1=firstChild->get_nodeLabel();
+      int label2=secondChild->get_nodeLabel();
+      if(label1 ==-1 || label2==-1)
+	{
+	  nodeLabel = -1;
+	  popSize = 0;
+	}
+      else
+	{
+	  if(age >=splittingTime)
+	    {
+	      nodeLabel = allPopSize.size();
+	      popSize = allPopSize.at(nodeLabel-1);
+	    }
+	  else
+	    {
+	      if(label1==label2)
+		{
+		  nodeLabel = label1;
+		  popSize = allPopSize.at(nodeLabel-1);
+		}
+	      else
+		{
+		  nodeLabel=-1;
+		  popSize = 0;
+		}
+	    }
+	}
+    }
+  else
+    {
+      nodeLabel = popID;
+      popSize = 0;
+    }
+  // std::cout <<"nodeLabel = "<< nodeLabel << " popSize ="<< popSize <<"\n";
+  
+  return;
+}
+
+// Counting the number of coalescent events in population with 'label'
+unsigned int nodeSimple::compute_nCoalEvents(int label)
+{
+  unsigned int nC = 0 ;
+  if(isTip==0)
+    {
+      if(nodeLabel==label)
+	{
+	  nC++;
+	  nC += firstChild->compute_nCoalEvents(label);
+	  nC += secondChild->compute_nCoalEvents(label);
+	}      
+      else if(nodeLabel > label)
+	{
+	  nC += firstChild->compute_nCoalEvents(label);
+	  nC += secondChild->compute_nCoalEvents(label);
+	}
+    }
+  return nC;
+}
+
+std::list<double> nodeSimple::compute_intervalCoalT(int label, double splittingTime, std::list<double> intervalCoalT)
+{
+  if(isTip==0)
+    {
+      if(nodeLabel==label)
+	{
+	  intervalCoalT.push_back(age);
+	  intervalCoalT= firstChild->compute_intervalCoalT(label,splittingTime,intervalCoalT);
+	  intervalCoalT = secondChild->compute_intervalCoalT(label,splittingTime,intervalCoalT);
+	}      
+      else if(nodeLabel > label)
+	{
+	  intervalCoalT=  firstChild->compute_intervalCoalT(label,splittingTime,intervalCoalT);
+	  intervalCoalT= secondChild->compute_intervalCoalT(label,splittingTime,intervalCoalT);
+	}
+    }
+
+  return intervalCoalT;
+}
+
+// Counting the number of coalescent events in population with 'label'
+unsigned int nodeSimple::compute_maxNumLin(int label)
+{
+  unsigned int nL = 0 ;
+  if(isTip==0)
+    {
+      if(nodeLabel==label)
+	{
+	  nL += 2 ;
+	  unsigned int nL1= firstChild->compute_maxNumLin(label);
+	  unsigned int nL2 =  secondChild->compute_maxNumLin(label);
+	  if(nL1 >=1)
+	    nL += nL1-1;
+	  if(nL2 >=1)
+	    nL += nL2-1;
+	}      
+      else if(nodeLabel > label)
+	{
+	  nL += firstChild->compute_maxNumLin(label);
+	  nL += secondChild->compute_maxNumLin(label);
+	}
+    }
+  else if(nodeLabel==label)
+    nL += 1;
+
+  // std::cout <<"isTip = "<< isTip;
+  // std::cout <<" nodeLabel = "<< nodeLabel <<" nL = "<< nL <<"\n";
+
+  return nL;
+}
+
+// Computing the log
+long double nodeSimple::compute_logProb_zeroMig(std::vector<double> coalT, std::vector<double> allPopSize, double splittingTime)
+{
+  unsigned int nGeneCopies = coalT.size()+1; 
+  long double logProb=0; 
+  /*
+  std::cout <<"splittingTime = "<< splittingTime <<"\n";
+  std::cout <<"nodeLabel = " << nodeLabel <<"\n";
+  std::cout <<"popSize = "<< popSize <<"\n";
+  */
+  unsigned int nEvents = 0;
+  if(nodeLabel==-1)
+    {
+      logProb = -1*numeric_limits<long double>::infinity();
+    }
+  else if(isTip==0 && nodeLabel !=-1)
+    {
+      // unsigned int nCoalEvents = compute_nCoalEvents(allPopSize.size());
+      // std::cout <<"nCoalEvents = "<< nCoalEvents <<"\n";
+      
+      for(unsigned int i=0; i<allPopSize.size(); i++)
+	{
+	  unsigned int maxNumLin = compute_maxNumLin(i+1);
+	  // std::cout <<"popID = "<< i+1<< " maxNumLin = "<< maxNumLin <<"\n";
+	  std::list<double> intervalCoalT;
+	  intervalCoalT = compute_intervalCoalT(i+1, splittingTime, intervalCoalT);
+	  intervalCoalT.sort(); // increasing order
+	  unsigned int nCoal = intervalCoalT.size();
+	  // std::cout <<"intervalCoalT.size = "<< intervalCoalT.size()<<"\n";
+	  
+	  if(nCoal==0)
+	    logProb += (long double) -1*maxNumLin*(maxNumLin-1)*splittingTime/allPopSize.at(i);
+	  else
+	    {
+	      std::list<double>::iterator iter = intervalCoalT.begin();	      
+	      if(*iter < splittingTime)
+		{
+		  double waitingTime = 0;
+		  double prevT=0;
+		  unsigned int nLin= maxNumLin;
+		  for(iter; iter!=intervalCoalT.end(); iter++)
+		    {
+		      waitingTime = *iter -prevT;
+		      logProb += log(2/allPopSize.at(i)) - nLin*(nLin-1)*waitingTime/allPopSize.at(i);
+		      prevT = *iter;
+		      nLin--;
+		    }	
+		  waitingTime = splittingTime -prevT;
+		  logProb += -nLin*(nLin-1)*waitingTime/allPopSize.at(i);	  
+		  
+		}
+	      else
+		{
+		  double waitingTime = 0;
+		  double prevT=splittingTime;
+		  unsigned int nLin= maxNumLin;
+		  std::list<double>::iterator iter = intervalCoalT.begin();
+		  for(iter; iter!=intervalCoalT.end(); iter++)
+		    {
+		      waitingTime = *iter -prevT;
+		      logProb += log(2/allPopSize.at(i)) - nLin*(nLin-1)*waitingTime/allPopSize.at(i);
+		      prevT = *iter;
+		      nLin--;
+		      
+		    }			  
+		}
+	    }
+	  // std::cout << "logProb = " << logProb <<"\n";
+	} // END of for(unsigned int i=0; i<allPopSize.size(); i++)  
+    }
+
+  return logProb;
+}
+
+long double Chain::compute_logConditionalProb_zeroMig(unsigned int id_sample, unsigned int id_locus, popTree* poptree, unsigned int crrProcID)
+{
+  /*
+  unsigned int numUniqTopo = list_trees.size();
+  for(unsigned int i =0; i<numUniqTopo; i++)
+    {
+      int tmp =list_trees.at(i)->get_nodeLabel();
+      std::cout <<"tmp_label = " <<tmp<<"\n";
+    }
+  */
+  unsigned int nPops = poptree->size();
+  unsigned int nTotalPops = nPops*(nPops+1)/2;
+  std::vector<double> popSize;
+  for(unsigned int p1=0; p1< nTotalPops; p1++)
+    {
+      popSize.push_back(poptree->find_popSize(p1+1));
+    }
+  double splittingTime = poptree->get_age(); // Sorts the elements in ascending order
+
+  std::list<double> eventT = coalTimes.at(id_sample).at(id_locus);
+  eventT.sort();
+  std::vector<double> eventT_inc;
+  std::list<double>::iterator iter = eventT.end();
+  for(iter=eventT.begin(); iter!=eventT.end(); iter++)
+    {
+      eventT_inc.push_back(*iter);
+    }
+
+  unsigned int trID = treeIDs.at(id_sample).at(id_locus);
+  nodeSimple* topo=list_trees.at(trID);
+  topo->assign_age_nodeLabel_popSize(eventT_inc,popSize, splittingTime);
+  long double logProb = topo->compute_logProb_zeroMig(eventT_inc,popSize, splittingTime);
+
+  // std::cout << "logProb = " << logProb <<"\n";
+  
+  return logProb;
+}
+
+
 // YC 3/25/2015
 // 'crrProcID' is required for debugging only. This function is called on each process.
 double Chain::compute_logConditionalProb(unsigned int id_sample, unsigned int id_locus, popTree* poptree, unsigned int crrProcID)
@@ -5792,13 +6048,13 @@ void Chain::compute_partialJointPosteriorDensity_overSubSample(popTree* poptree,
     }
   
 
-  std::chrono::microseconds initial(0);
-  eachComputingTime_condiProb = initial;
-  eachComputingTime_condiProb_case1= initial;
-  eachComputingTime_condiProb_case2_1 = initial;
-  eachComputingTime_condiProb_case2_2 = initial;
-  eachComputingTime_condiProb_case3_1 = initial;
-  eachComputingTime_condiProb_case3_2 = initial;
+  // std::chrono::microseconds initial(0);
+  // eachComputingTime_condiProb = initial;
+  // eachComputingTime_condiProb_case1= initial;
+  // eachComputingTime_condiProb_case2_1 = initial;
+  // eachComputingTime_condiProb_case2_2 = initial;
+  // eachComputingTime_condiProb_case3_1 = initial;
+  // eachComputingTime_condiProb_case3_2 = initial;
 
   expectationOfCoalProb.resize(n_loci);
 
@@ -5926,7 +6182,7 @@ void Chain::compute_partialJointPosteriorDensity_overSubLoci_ESS(popTree* poptre
   return;	
 }
 
-// YC 1/4/2016
+// YC 5/11/2016
 void Chain::compute_partialJointPosteriorDensity_overSubLoci(popTree* poptree, IM im, unsigned int crrProcID, unsigned int nProcs)
 { 
   
@@ -5934,27 +6190,25 @@ void Chain::compute_partialJointPosteriorDensity_overSubLoci(popTree* poptree, I
   
   double migRateMax = im.get_migRateMax();
 
-  // prepare_Lmode(poptree);
-  if(migRateMax !=0) // not a single population
+  // if(migRateMax !=0) // not a single population
     {
       if(poptree->get_age()>0)
 	compute_eigenValuesVectors_subMatOfEigenVectors_MPI(poptree);
     }
-  else if(migRateMax==0)
-    {
-      compute_summaryOfCoalTrees(poptree);
-    }
+  //  else if(migRateMax==0)
+  //  {
+  //    compute_summaryOfCoalTrees(poptree);
+  //  }
 
-  // std::cout << "Done with compute_eigenValuesVectors_subMatOfEigenVectors_MPI\n";
-  
 
-  std::chrono::microseconds initial(0);
-  eachComputingTime_condiProb = initial;
-  eachComputingTime_condiProb_case1= initial;
-  eachComputingTime_condiProb_case2_1 = initial;
-  eachComputingTime_condiProb_case2_2 = initial;
-  eachComputingTime_condiProb_case3_1 = initial;
-  eachComputingTime_condiProb_case3_2 = initial;
+
+  // std::chrono::microseconds initial(0);
+  // eachComputingTime_condiProb = initial;
+  // eachComputingTime_condiProb_case1= initial;
+  // eachComputingTime_condiProb_case2_1 = initial;
+  // eachComputingTime_condiProb_case2_2 = initial;
+  // eachComputingTime_condiProb_case3_1 = initial;
+  // eachComputingTime_condiProb_case3_2 = initial;
 
   logExpectationOfCoalProb.resize(numSubLoci);
 
@@ -5968,9 +6222,18 @@ void Chain::compute_partialJointPosteriorDensity_overSubLoci(popTree* poptree, I
       if(TreesWithMaxP==1)
 	{
 	  unsigned int sampleID = MaxSampleID.at(j);
-	  long double eachLogProb = (long double) compute_logConditionalProb(sampleID,j,poptree,crrProcID);
-	  long double ntrees = (long double) numTrees.at(treeIDs.at(sampleID).at(j)); 
-	  logExpectationOfCoalProb.at(j) = eachLogProb-log(ntrees);
+	  long double eachLogProb = 0.0;
+	  if(migRateMax !=0) // not a single population
+	    {
+	      eachLogProb = (long double) compute_logConditionalProb(sampleID,j,poptree,crrProcID);
+	      long double ntrees = (long double) numTrees.at(treeIDs.at(sampleID).at(j)); 
+	      logExpectationOfCoalProb.at(j) = eachLogProb-log(ntrees);
+	    }
+	  else
+	    {
+	      eachLogProb = compute_logConditionalProb_zeroMig(sampleID,j,poptree,crrProcID);
+	      logExpectationOfCoalProb.at(j) = eachLogProb;
+	    }
 	}
       else if(TreesWithMaxP==0)
 	{
@@ -5987,24 +6250,32 @@ void Chain::compute_partialJointPosteriorDensity_overSubLoci(popTree* poptree, I
 	      //    << "logPriorTree = " << logPriorTree <<"\n";
 	      
 	      long double eachLogProb = 0;
-	      eachLogProb = (long double) compute_logConditionalProb(i,j,poptree,crrProcID);	      
+	      if(migRateMax !=0) // not a single population
+		{	      
+		  eachLogProb = (long double) compute_logConditionalProb(i,j,poptree,crrProcID);   
+		  long double ntrees = numTrees.at(treeIDs.at(i).at(j));  
+		  logCondPr.at(i) = eachLogProb-log(ntrees)-logPriorTree;
+		}
+	      else
+		{
+		  eachLogProb = compute_logConditionalProb_zeroMig(i,j,poptree,crrProcID);
+		  logCondPr.at(i) = eachLogProb-logPriorTree;
+		}
+
 	      // std::cout <<"eachLogProb = "<<eachLogProb <<"\n";
 	      // the number of coalescent trees that have the give tree topology with the special labels
-	      long double ntrees = numTrees.at(treeIDs.at(i).at(j)); 
 	      // eachterm_log = eachLogProb-log(ntrees);
 
-	      logCondPr.at(i) = eachLogProb-log(ntrees)-logPriorTree;
 	      if(maxLogCondPr < logCondPr.at(i))
 		maxLogCondPr = logCondPr.at(i);
 
-	      // REMOVE
-	      // std::cout << "ntrees = " << ntrees <<"\n";
 	    }
 	  long double ratios =0.0;
 	  for(unsigned int i=0; i< nSubSample; i++)
 	    {
 	      // expectationOfCoalProb.at(j) += exp(eachterm_log);
-	      ratios += exp(logCondPr.at(i)-maxLogCondPr);
+	      if(logCondPr.at(i) != -1*numeric_limits<long double>::infinity())
+		ratios += exp(logCondPr.at(i)-maxLogCondPr);
 	    } 
 	  logExpectationOfCoalProb.at(j) = maxLogCondPr + log(ratios)-log(n_MCMCgen);
 	  // expectationOfCoalProb.at(j) /= n_MCMCgen;
@@ -6109,7 +6380,7 @@ double Chain::compute_partialJointPosteriorDensity_overSubSample_expectationOfJo
 
   double migRateMax = im.get_migRateMax();
 
-  prepare_Lmode(poptree);
+  prepare_Lmode(poptree,im);
   if(migRateMax !=0) // not a single population
     {
       // prepare_Lmode(poptree);

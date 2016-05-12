@@ -241,6 +241,27 @@ void node::convertFromNewick(string tree, unsigned int root)
   return;
 }
 
+/*
+void nodeSimple::assignNodeLabel()
+{
+  if(isTip)
+    nodeLabel = popID;
+  else
+    {
+      firstChild->assignNodeLabel();
+      secondChild->assignNodeLabel();
+      int label1 = firstChild->get_nodeLabel();
+      int label2 = secondChild->get_nodeLabel();
+      if(label1==label2)
+	nodeLabel = label1;
+      else
+	nodeLabel = -1;
+    }
+  std::cout <<"nodeLabel = "<< nodeLabel <<"\n";
+  return;
+}
+*/
+
 
 /***
  * Convert a string in newick form to a ranked topology.
@@ -2207,6 +2228,9 @@ std::vector<unsigned int> nodeSimple::get_nodePopID_withRank(unsigned int R)
   
   return res;
 }
+
+
+
 
 void nodeSimple::compute_areTipsFromSamePop()
 {

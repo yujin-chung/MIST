@@ -17,10 +17,10 @@ void MaxPosterior::initiate(IM im, popTree* poptree, Chain coldCh, unsigned int 
 
   nParaVectors = im.get_nParaVectors();
 
-  std::chrono::microseconds initial(0);
-  totalComputingTime_eigen = initial;
-  totalComputingTime_eigen_subMatOfEigenVectors= initial;
-  totalComputingTime_condiProb = initial;
+  //  std::chrono::microseconds initial(0);
+  // totalComputingTime_eigen = initial;
+  // totalComputingTime_eigen_subMatOfEigenVectors= initial;
+  // totalComputingTime_condiProb = initial;
 
   checkpoint = im.get_checkpoint();
   if(checkpoint ==1|| checkpoint==3)
@@ -187,6 +187,7 @@ void MaxPosterior::initiate(IM im, popTree* poptree, Chain coldCh, unsigned int 
 	    paraVector(0,5) =im.get_splittingTimeMax();
 	}
 
+     
       unsigned int lociInParallel = im.get_lociInParallel();
 
       if(lociInParallel ==1)

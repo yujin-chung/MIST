@@ -212,6 +212,10 @@ private:
   unsigned int AreTipsFromSamePop; 
   unsigned int nodePopID; // the population ID from which the (descent) tips are
                           // If tips are from different populations, nodePopID =0
+  double age;
+  double popSize;
+  int nodeLabel;
+
 
 public:
   void assignSize(unsigned int s){size = s;}
@@ -225,6 +229,9 @@ public:
   nodeSimple* getPar(){return par;}
   unsigned int get_nodePopID(){return nodePopID;}
   unsigned int get_AreTipsFromSamePop(){return AreTipsFromSamePop;}
+  double get_age(){return age;}
+  int get_nodeLabel(){return nodeLabel;}
+  // int get_nodeLabel(){return nodeLabel;}
   
   void convert_oldversion(node* tree);
   void convert(node* tree, std::list<double> coaltimes, unsigned int nLineages); // updated by YC 5/8/2014
@@ -275,7 +282,9 @@ public:
 	int moreNextState(int nPops);
 	void makeNULL_ancestorsLik();
 	void assignPopulations2Tips(locus lc);
+  //  void assignNodeLabel();
 	int assignPopulation(Eigen::VectorXi popAssign, int &idx, Eigen::VectorXi &state, int nPops);
+  void assign_age_nodeLabel_popSize(std::vector<double> coalT, std::vector<double> allPopSize, double splittingTime);
 	Eigen::VectorXi get_totalNumEachKind(int noPops);
 	void compute_totalCoalescentRate();
 	void compute_likMatrix_HKY(locus lc, double mutrate, double kappa);// Computing the likelihood
@@ -298,6 +307,12 @@ public:
   unsigned int compute_nTrees_sameTopo(unsigned int nPops);
   void compute_areTipsFromSamePop();
   std::vector<unsigned int> get_nodePopID_withRank(unsigned int R);
+
+  long double compute_logProb_zeroMig(std::vector<double> coalT, std::vector<double> allPopSize, double splittingTime);
+  unsigned int compute_nCoalEvents(int label);
+  unsigned int compute_maxNumLin(int label);
+  std::list<double> compute_intervalCoalT(int label, double splittingTime, std::list<double> intervalCoalT);
+
 };
 
 

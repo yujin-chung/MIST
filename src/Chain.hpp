@@ -408,7 +408,7 @@ void update_mutationScaler_Kappa_usePriorsOnly(unsigned int id_crrIter, std::vec
   void compute_possiblePaths_nPossibleCoalEvents(unsigned int nPops);
   void compute_numTrees(unsigned int nPops);
   void compute_numSameCoalEvents_inAncPop();
-  void prepare_Lmode(popTree* poptree);
+  void prepare_Lmode(popTree* poptree, IM im);
   
   
   // the followings are called whenever different population trees are considered
@@ -427,6 +427,7 @@ void update_mutationScaler_Kappa_usePriorsOnly(unsigned int id_crrIter, std::vec
   double compute_conditionalProb(unsigned int id_sample, unsigned int id_locus, popTree* poptree); 
   double compute_conditionalProb_MPI(unsigned int id_sample, unsigned int id_locus, popTree* poptree, unsigned int crrProcID); 
   double compute_logConditionalProb(unsigned int id_sample, unsigned int id_locus, popTree* poptree, unsigned int crrProcID); // currently used 
+  long double compute_logConditionalProb_zeroMig(unsigned int id_sample, unsigned int id_locus, popTree* poptree, unsigned int crrProcID); // currently used 
   double compute_logConditionalProb_old(unsigned int id_sample, unsigned int id_locus, popTree* poptree, unsigned int crrProcID); 
   double compute_jointPosteriorDensity(popTree* poptree,IM im);
   double compute_jointPosteriorDensity_MPI(popTree* poptree, IM im, unsigned int crrProcID);
