@@ -1215,23 +1215,21 @@ void Chain::deleteAll_Lmode()
 
 void Chain::deleteListTrees()
 {
-	for(unsigned int i=0; i<list_trees.size(); i++)
-	{
-		list_trees.at(i)->deleteTopo();
-		//delete list_trees.at(i);
-	}
-	list_trees.resize(0);
+  for(unsigned int i=0; i<list_trees.size(); i++)
+    {
+      list_trees.at(i)->deleteTopo();
+    }
+  list_trees.resize(0);
 }
 
 void Chain::deleteTrees()
 {
-	for(unsigned int i=0; i<n_loci; i++)
-	{
-		trees_atPrev.at(i)->deleteCoalTree();
-		// delete trees_atPrev.at(i);
-	}
-	trees_atPrev.resize(0);
-	deleteListTrees();
+  for(unsigned int i=0; i< numSubLoci; i++)
+    {
+      trees_atPrev.at(i)->deleteCoalTree();
+    }
+  trees_atPrev.resize(0);
+  deleteListTrees();
 }
 
 
@@ -3280,18 +3278,7 @@ void Chain::UpdateTrees_LociInMPI_newProposal(unsigned int id_crrIter, vector<lo
 	       logRatioPrior = newlogPrior - logPriorTrees_atPrev;
 	     }
 	   double MHratio = MHratio_trees_newProposal(i, newTree, newLogLik,logRatioPrior, slidedist );
-	   
-	   /*
-      if(i+locusID_start ==0)
-	{
-	  std::cout << "newLogLik = " << newLogLik
-		    << " oldLoglik = " << logLikelihood_atPrev.at(i)
-		    << " i=" <<i 
-		    << " logRatioPrior = " << logRatioPrior
-		    << " MHratio = " << MHratio
-		    <<"\n";
-	}
-	   */
+
 	   
 	   if(runiform() < std::min(1.0, MHratio) )
 	     {

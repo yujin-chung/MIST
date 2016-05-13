@@ -37,6 +37,7 @@ int main (int argc, char *argv[])
   MPI::Init(argc, argv);
   MPI::COMM_WORLD.Set_errhandler(MPI::ERRORS_THROW_EXCEPTIONS);
   MPI::Status status;
+#endif
   int *swapper;
   int *swappee;
 
@@ -47,6 +48,7 @@ int main (int argc, char *argv[])
 
 
   // Get the number of processes - YC 9/26/2014
+#ifdef MPI_ENABLED
   try 
     {
       numprocesses = MPI::COMM_WORLD.Get_size();
@@ -456,6 +458,7 @@ int main (int argc, char *argv[])
 	  float runTime1  = (float) (clock_end_Mmode-clock_start_Mmode)/CLOCKS_PER_SEC;
 	  if(currentid == 0 )
 	    std::cout << "\nThe running time of step 1 (MCMC) is " << runTime1 <<" seconds.\n";
+	  MPI::COMM_WORLD.Barrier();
 	  
 	  /*
 	  if(currentid ==0)
@@ -470,6 +473,7 @@ int main (int argc, char *argv[])
 	      delete[] swapper;
 	      delete[] swappee;
 	    }
+	  mcmc_run.deleteTrees();
 #endif
 	}// END of if(MLmodes ==0 || MLmodes == 1)
 

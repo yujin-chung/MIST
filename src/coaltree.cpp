@@ -1589,39 +1589,7 @@ node* node::findNode_fromRoot(int tipid)
 	}
 }
 
-/*
-auto_ptr<node> node::deepCopy_root()
-{
-	auto_ptr<node> copy_node(new node_ptr);
-	//copy_node->initialization();
-	//node tree;
-	//node* copy_node = &tree;
-	//node* copy_node;
 
-	copy_node->isTip = isTip;
-	copy_node->isRoot = isRoot;
-	copy_node->tipID = tipID;
-	copy_node->age = age;
-	copy_node->isLikelihoodNULL = isLikelihoodNULL;
-	copy_node->totalCoalRate = totalCoalRate;
-	copy_node->label = label;
-	copy_node->popID = popID;
-	copy_node->assign_siblingOrder(siblingOrder);
-	if(!isLikelihoodNULL)
-	{
-		copy_node->lik.replace(lik.get_valarray(),4,lik.get_ncol());
-		// copy_node->lik=lik;
-	}
-	if(!isTip)
-	{
-		copy_node->desc[0] = desc[0]->deepCopy_root();
-		copy_node->desc[1] = desc[1]->deepCopy_root();
-		copy_node->desc[0]->par = copy_node;
-		copy_node->desc[1]->par = copy_node;
-	}
-	return copy_node;
-}
-*/
 
 node* node::deepCopy_root()
 {
@@ -1846,15 +1814,6 @@ void node_old::deepCopy_obj(node_old copiedTree, node_old* tr)
 
 void node::deepCopy_root(node* tr)
 {
-	// REMOVE
-	//std::cout << "In node::deepCopy_root()\n";
-	//tr->print_coaltree();
-	//node* copy_node = new node;
-	//initialization();
-	//node tree;
-	//node* copy_node = &tree;
-	//node* copy_node;
-
   isTip = tr->isTip;
   isRoot = tr->isRoot;
   tipID = tr->tipID;
@@ -1874,11 +1833,11 @@ void node::deepCopy_root(node* tr)
 
   if(!tr->isLikelihoodNULL)
     {
-		lik.resize(4,tr->lik.cols());
-		lik.setZero();
-		lik = tr->lik;
-		//lik.replace(tr->lik.get_valarray(),4,tr->lik.get_ncol());
-		// copy_node->lik=lik;
+      lik.resize(4,tr->lik.cols());
+      lik.setZero();
+      lik = tr->lik;
+      //lik.replace(tr->lik.get_valarray(),4,tr->lik.get_ncol());
+      // copy_node->lik=lik;
     }
   if(tr->isTip == 0)
     {

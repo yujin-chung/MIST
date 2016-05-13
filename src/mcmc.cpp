@@ -315,8 +315,8 @@ void MCMC::deleteHotChains()
 
 void MCMC::deleteTrees()
 {
-	for(unsigned int i=0; i<n_chains; i++)
-		chains.at(i).deleteTrees();
+  for(unsigned int i=0; i<n_chains; i++)
+    chains.at(i).deleteTrees();
 }
 
 
@@ -551,6 +551,7 @@ void MCMC::collectUpdates_bwProcs_lociInParallel(unsigned int savingID)
 	      node *tree2save = chains.at(0).GetTreesAtPrev(i);
 	      tree2save->MPIsend_coaltimes_tipIDs();
 	      tree2save->MPIsend_coaltree();
+	      // tree2save->deleteCoalTree();
 	    }
 	  else if(process_id ==0)// reciever
 	    {
@@ -623,6 +624,7 @@ void MCMC::collectUpdates_bwProcs_lociInParallel(unsigned int savingID)
 		  else 
 		    {
 		      chains.at(0).SetTreeIDs(savingID, sender_locusID_start+i, count-1);
+		      topo->deleteTopo();
 		    }	
 		}  
 	      
