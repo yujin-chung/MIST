@@ -729,9 +729,6 @@ long double MaxPosterior::computeLogJointDensity_MPI_overSubLoci_ESS(Eigen::Matr
 // 'demographicPara' is a 1x6 matrix.
 long double MaxPosterior::computeLogJointDensity_MPI_overSubLoci(Eigen::MatrixXd demographicPara, IM im, popTree* poptree, Chain coldCh, unsigned int nProcs, unsigned int crr_procID)
 {
-  // REMOVE
-  // if(crr_procID == 0)
-  //  std::cout << "\n In MaxPosterior::computeJointDensity_MPI_SubLoci\n";
 
   poptree->replacePara(demographicPara);
 
@@ -765,7 +762,8 @@ long double MaxPosterior::computeLogJointDensity_MPI_overSubLoci(Eigen::MatrixXd
       Eigen::Vector3d paraMax = im.get_paraMax();
       double priorPopTree = poptree->computeJointPrior(paraMax);
       //posterior = exp(global_logPosterior+log(priorPopTree));
-      logPosterior = global_logPosterior +log(priorPopTree);
+      logPosterior = global_logPosterior; //  +log(priorPopTree);
+      // std::cout <<"log(priorPopTree) = " << log(priorPopTree) <<"\n";
     }
   
   /*

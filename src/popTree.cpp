@@ -573,31 +573,7 @@ double popTree::computeJointPrior(Eigen::Vector3d paraMax)
       else // same migration rates
 	prior *= 1/paraMax(2);
     }
-  
-  //prior *= desc[0]->computeJointPrior(paraMax);
-  //prior *= desc[1]->computeJointPrior(paraMax);
-
-  /*
-  else
-    {
-      //std::cout << "paraMax(2) = "  << paraMax(2) <<"\n";
-      //std::cout << "migRate.size() = " << migRate.size() << "\n";
-      for(unsigned int i=0; i<migRate.size(); i++)
-	{
-	  if(paraMax(2) != 0.0)
-	    prior *= 1/paraMax(2);
-	}
-      if(isTip == 0)
-	{
-	  if(paraMax(1) != 0.0)
-	    prior *= 1/paraMax(1);
-	  prior *= desc[0]->computeJointPrior(paraMax);
-	  prior *= desc[1]->computeJointPrior(paraMax);
-	}
-    }
-  */
-  //std::cout << "In popTree::computeJointPrior\n";
-  //std::cout << "prior = " << prior <<"\n";
+ 
   return prior;
 }
 

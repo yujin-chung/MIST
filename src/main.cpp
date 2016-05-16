@@ -474,6 +474,7 @@ int main (int argc, char *argv[])
 	      delete[] swappee;
 	    }
 	  mcmc_run.deleteTrees();
+	  MPI::COMM_WORLD.Barrier();
 #endif
 	}// END of if(MLmodes ==0 || MLmodes == 1)
 
@@ -741,6 +742,7 @@ int main (int argc, char *argv[])
   
 	
 #ifdef MPI_ENABLED
+  MPI::COMM_WORLD.Barrier();
   MPI::Finalize();
   //AS: debug only
   //f1.close();
