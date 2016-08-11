@@ -158,6 +158,7 @@ private:
 
   unsigned int newickTreeFormat;
   char* newickTreeFileName;
+  char* SeqPopFileName;
 
   unsigned int multiLocusSpecific_mutationRate; // 0 if same mutation rates across loci; 1 if multilucs-specific mutation rate
   
@@ -205,6 +206,7 @@ public:
   unsigned int get_multiLocusSpecific_mutationRate(){return multiLocusSpecific_mutationRate;}
   unsigned int get_newickTreeFormat(){return newickTreeFormat;}
   char* get_newickTreeFileName(){return newickTreeFileName;}
+  char* get_SeqPopFileName(){return SeqPopFileName;}
   unsigned int get_nLoci() {return n_loci;}
   vector<locus> getLoci() {return loci;}
   unsigned int get_nGeneCopies() {return loci.at(0).get_nGeneCopies();}

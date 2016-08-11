@@ -527,7 +527,7 @@ int main (int argc, char *argv[])
 	      // if(im.get_migRateMax()!=0)
 		coldCh.prepare_Lmode(poptree, im);
 	      
-	      // std::cout <<"Done with reading input files.\n";
+		// std::cout <<"Done with reading input files.\n";
 
 	      if(MLmodes == 3)
 		{

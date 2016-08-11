@@ -249,6 +249,8 @@ unsigned int IM::initialization(int argc, char *argv[], unsigned int processID)
 		    {
 		      counter++;
 		      newickTreeFileName = argv[counter+1];
+		      counter++;
+		      SeqPopFileName = argv[counter+1];
 		    }
 		}
 	      break;

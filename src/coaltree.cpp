@@ -853,6 +853,119 @@ unsigned int nodeSimple::receive_size(int coldprocess)
 }
 
 
+void nodeSimple::MPIreceive_coaltree(int senderID)
+{	
+  MPI::Status status;
+  MPI::COMM_WORLD.Recv(&isRoot, 1, MPI::UNSIGNED, senderID, 40857, status);
+  MPI::COMM_WORLD.Recv(&isTip, 1, MPI::UNSIGNED, senderID, 8592002, status);
+  MPI::COMM_WORLD.Recv(&popID, 1, MPI::UNSIGNED, senderID, 10528, status);
+  MPI::COMM_WORLD.Recv(&rank, 1, MPI::UNSIGNED, senderID, 86040, status);
+  MPI::COMM_WORLD.Recv(&size, 1, MPI::UNSIGNED, senderID, 402002, status);
+  MPI::COMM_WORLD.Recv(&nodePopID, 1, MPI::UNSIGNED, senderID, 26840, status);
+  MPI::COMM_WORLD.Recv(&nodeLabel, 1, MPI::UNSIGNED, senderID, 810, status);
+  MPI::COMM_WORLD.Recv(&age, 1, MPI::DOUBLE, senderID, 2002, status);
+  MPI::COMM_WORLD.Recv(&popSize, 1, MPI::DOUBLE, senderID, 6682002, status);
+
+  if (isTip == 0) 
+    {
+      firstChild = new nodeSimple;
+      secondChild = new nodeSimple;
+      firstChild->MPIreceive_coaltree(senderID);
+      secondChild->MPIreceive_coaltree(senderID);
+      firstChild->par = this;
+      secondChild->par = this;
+    }
+  
+  /*
+  double age = 0.0;
+  unsigned int foundSameCoalTime = 0;
+  unsigned int nLineages = ct.size()+1;
+  unsigned int count = nLineages;
+  //std::cout << "Receiving age\n";
+  MPI::COMM_WORLD.Recv(&age, 1, MPI::DOUBLE, coldprocess, 192, status);
+  std::list<double>::iterator iter = ct.begin();
+  while (foundSameCoalTime == 0 && count < ct.size()+nLineages) {
+    if (age == *iter) 
+      {
+	foundSameCoalTime = 1;
+      }
+    count++;
+    iter++;
+  }
+  if (foundSameCoalTime == 1) 
+    {
+      rank = count;
+    }
+  if (isRoot == 1) 
+    {
+      par = 0;
+    }
+  if (isTip == 1) 
+    {
+      //std::cout << "Receiving popID\n";
+      MPI::COMM_WORLD.Recv(&popID, 1, MPI::UNSIGNED, coldprocess, 193, status);
+    }
+  */
+  return;
+}
+
+void nodeSimple::MPIsend_nodeSimple(unsigned int receiverID)
+{
+  MPI::COMM_WORLD.Send(&isRoot, 1, MPI::UNSIGNED, receiverID, 40857);  
+  MPI::COMM_WORLD.Send(&isTip, 1, MPI::UNSIGNED, receiverID, 8592002);
+  MPI::COMM_WORLD.Send(&popID, 1, MPI::UNSIGNED, receiverID, 10528);
+  MPI::COMM_WORLD.Send(&rank, 1, MPI::UNSIGNED, receiverID, 86040);
+  MPI::COMM_WORLD.Send(&size, 1, MPI::UNSIGNED, receiverID, 402002);
+  MPI::COMM_WORLD.Send(&nodePopID, 1, MPI::UNSIGNED, receiverID, 26840);
+  MPI::COMM_WORLD.Send(&nodeLabel, 1, MPI::UNSIGNED, receiverID, 810);  
+  
+  MPI::COMM_WORLD.Send(&age, 1, MPI::DOUBLE, receiverID, 2002);
+  MPI::COMM_WORLD.Send(&popSize, 1, MPI::DOUBLE, receiverID, 6682002);
+
+
+  if (isTip == 0) 
+    {
+      firstChild->MPIsend_nodeSimple(receiverID);
+      secondChild->MPIsend_nodeSimple(receiverID);
+      /*
+      if(desc[0]->isTip ==1 && desc[1]->isTip == 1)
+	{	
+	  if(desc[0]->popID <= desc[1]->popID)
+	    {
+	      desc[0]->MPIsend_nodeSimple();
+	      desc[1]->MPIsend_nodeSimple();
+	    } 
+	  else 
+	    {
+	      desc[1]->MPIsend_nodeSimple();
+	      desc[0]->MPIsend_nodeSimple();
+	    }
+	}
+      else
+	{
+	  if (desc[0]->age <= desc[1]->age) 
+	    {
+	      desc[0]->MPIsend_nodeSimple();
+	      desc[1]->MPIsend_nodeSimple();
+	    } 
+	  else 
+	    {
+	      desc[1]->MPIsend_nodeSimple();
+	      desc[0]->MPIsend_nodeSimple();
+	    }
+	}
+      */
+    } 
+  /*
+  else 
+    {
+      MPI::COMM_WORLD.Send(&popID, 1, MPI::UNSIGNED, 0, 193);
+    }
+  */
+  return;
+}
+
+
 //AS: Adding MPI version
 //This has to happen simultaneously between the head node, which is saving the nodesimple stuff
 //and the cold chain node. 
@@ -1135,10 +1248,10 @@ unsigned int nodeSimple::sameTopo(node* tree)
   
   //std::cout << "nodeSimple::sameTopo().\t size = " << size <<"\n";
   //std::cout << "tree->size_tree() = "<<tree->size_tree() << "\n";
-  //std::cout << "Comparing..";
-  //tree->print_coaltree();
-  //print_topo();
-  //std::cout << "\n";
+  // std::cout << "Comparing..";
+  // tree->print_coaltree();
+  // print_topo();
+  // std::cout << "\n";
   
   //if(size <= 0)
   //		computeSizes();

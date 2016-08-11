@@ -368,6 +368,8 @@ void update_mutationScaler_Kappa_usePriorsOnly(unsigned int id_crrIter, std::vec
 
   void collectAllUpdates(unsigned int savingID, unsigned int Lmode); // 1 process and 1 chain
   void collectAllUpdates_Lmode(unsigned int savingID);
+  void collectAllUpdates_bwProcs_Lmode();
+
 
   void AddTrees(std::vector<node*> trees);
   double logLikelihoodHKY(locus lc, int which_iteration, int which_locus);

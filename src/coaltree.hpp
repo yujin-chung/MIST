@@ -145,6 +145,7 @@ public:
   int moreNextState(int nPops);
   void makeNULL_ancestorsLik();
   void assignPopulations2Tips(locus lc);
+  void assignPopulations2Tips(std::vector<unsigned int> SeqPop);
   int assignPopulation(Eigen::VectorXi popAssign, int &idx, Eigen::VectorXi &state, int nPops);
   Eigen::VectorXi get_totalNumEachKind(int noPops);
   void compute_totalCoalescentRate();
@@ -312,6 +313,10 @@ public:
   unsigned int compute_nCoalEvents(int label);
   unsigned int compute_maxNumLin(int label);
   std::list<double> compute_intervalCoalT(int label, double splittingTime, std::list<double> intervalCoalT);
+
+  void MPIreceive_coaltree(int senderID);
+  void MPIsend_nodeSimple(unsigned int receiverID);
+  
 
 };
 

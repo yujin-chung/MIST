@@ -99,12 +99,6 @@ void MaxPosterior::initiate(IM im, popTree* poptree, Chain coldCh, unsigned int 
       }
     }
 
-  /*
-  if(crr_procID == 0)
-    marginals.initiate_forDE(im, nPara, priorsMax);
-  */
-  // coldCh.prepare_Lmode(poptree);
-
 
   // Initialize "para_atPrev"
   for(unsigned int i=0; i<nParaVectors; i++)
@@ -136,6 +130,8 @@ void MaxPosterior::initiate(IM im, popTree* poptree, Chain coldCh, unsigned int 
 		    << checkpoint <<".\n\n";
 	}
     }
+
+
 
   // Computing the posterior of para_atPrev
   for(unsigned int i=0; i<nParaVectors; i++)
@@ -189,6 +185,7 @@ void MaxPosterior::initiate(IM im, popTree* poptree, Chain coldCh, unsigned int 
 
      
       unsigned int lociInParallel = im.get_lociInParallel();
+
 
       if(lociInParallel ==1)
 	{
@@ -729,12 +726,15 @@ long double MaxPosterior::computeLogJointDensity_MPI_overSubLoci_ESS(Eigen::Matr
 // 'demographicPara' is a 1x6 matrix.
 long double MaxPosterior::computeLogJointDensity_MPI_overSubLoci(Eigen::MatrixXd demographicPara, IM im, popTree* poptree, Chain coldCh, unsigned int nProcs, unsigned int crr_procID)
 {
+  // std::cout <<"In computeLogJointDensity_MPI_overSubLoci()\n";
 
   poptree->replacePara(demographicPara);
 
   coldCh.compute_partialJointPosteriorDensity_overSubLoci(poptree, im, crr_procID, nProcs);
   std::vector<long double> logExpectationOfEachCoalProb = coldCh.get_logExpectationOfCoalProb();
   unsigned int numSubLoci = coldCh.getNumSubLoci();
+
+  // std::cout <<"numSubLoci ="<<numSubLoci <<"\n";
 
   long double posterior = 1;
   if(numSubLoci != logExpectationOfEachCoalProb.size())
@@ -748,9 +748,7 @@ long double MaxPosterior::computeLogJointDensity_MPI_overSubLoci(Eigen::MatrixXd
   for(unsigned int lc=0; lc< numSubLoci; lc++)
     {
       local_logPosterior_subLoci += logExpectationOfEachCoalProb.at(lc);
-      // std::cout<< "lc = " << lc <<" local_logPosterior_subLoci = "<< local_logPosterior_subLoci <<"\n";
     }
-  // std::cout << "crr_procID=" << crr_procID << " local_logPosterior_subLoci = " << local_logPosterior_subLoci <<"\n";
   
   MPI::COMM_WORLD.Barrier();
   MPI::COMM_WORLD.Allreduce(&local_logPosterior_subLoci, &global_logPosterior, 1, MPI_LONG_DOUBLE, MPI_SUM);
@@ -766,16 +764,7 @@ long double MaxPosterior::computeLogJointDensity_MPI_overSubLoci(Eigen::MatrixXd
       // std::cout <<"log(priorPopTree) = " << log(priorPopTree) <<"\n";
     }
   
-  /*
-  if(crr_procID ==0)
-    {
-      totalComputingTime_eigen += coldCh.get_eachComputingTime_eigen();
-      totalComputingTime_condiProb += coldCh.get_eachComputingTime_condiProb();
-      totalNum_eigenFunctionCalls++;
-      totalNum_condiProbFunctionCalls += coldCh.get_countCondiProbFunctionCalls();
-      // std::cout << "totalComputingTime_eigen = " << totalComputingTime_eigen.count()/1000 << "milliseconds\n";
-    }
-  */
+ 
   
   // std::cout << "crr_procID=" << crr_procID << " logPosterior = " << logPosterior <<"\n";    
   return logPosterior;

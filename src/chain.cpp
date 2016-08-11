@@ -77,7 +77,13 @@ void Chain::read_LmodeInputFile(IM im)
 void Chain::read_newickTrees_partial(IM im)
 {
   char* inputFile = im.get_newickTreeFileName();
+  char* SeqPopFile = im.get_SeqPopFileName();
   std::cout << "\n Reading "<< inputFile <<"\n";
+
+  /*
+  std::cout <<"numSubLoci = "<< numSubLoci 
+	    <<" nSubSample = "<< nSubSample <<"\n";
+  */
 
   trees_atPrev.resize(numSubLoci); 
   treeIDs.resize(nSubSample);
@@ -86,13 +92,32 @@ void Chain::read_newickTrees_partial(IM im)
   logPrior_trees.resize(nSubSample);
   logPriorTrees_atPrev = 0.0;
 
+  ifstream inFile; 
+
+  // seq-population names
+  std::vector<unsigned int> SeqPop;
+  unsigned int word_counter = 0;
+  unsigned int label = 0;
+  inFile.open(SeqPopFile);
+  while(inFile >> label){
+    SeqPop.push_back(label);
+    word_counter++;
+  }
+  inFile.close();
+
+  /*
+  std::cout <<"word_counter = " << word_counter <<"\n";
+  for(unsigned int i=0; i<word_counter; i++)
+    std::cout << SeqPop.at(i) <<" ";
+  std::cout <<"\n";
+  */
+
   string word;
   unsigned int iter = 0;
   unsigned int locusID = 0;
   unsigned int line_counter = 1;
   std::string tree_string;
 
-  ifstream inFile; 
   inFile.open(inputFile);
   
   unsigned int count_nSample_perProcess = 0;
@@ -107,13 +132,15 @@ void Chain::read_newickTrees_partial(IM im)
 	  
 	  node* tree = new node;
 	  tree->convertFromNewick(tree_string,1);
-	  tree->assignPopulations2Tips(im.getLoci()[0]);
+	  // tree->assignPopulations2Tips(im.getLoci()[0]);
+	  tree->assignPopulations2Tips(SeqPop);
 	  trees_atPrev.at(locusID-locusID_start) = tree;
-	  
+	  /*
 	  if(locusID == locusID_end)
 	    {
 	      collectAllUpdates_Lmode(0);
 	    }	        
+	  */
 	}
       if(locusID==n_loci-1)
 	locusID++;
@@ -121,9 +148,89 @@ void Chain::read_newickTrees_partial(IM im)
      
   inFile.close();
   
+  if(cpuID == 0)
+    collectAllUpdates_Lmode(0);
+
+  collectAllUpdates_bwProcs_Lmode();
+
+
+  // REMOVE
+  /*
+  if(cpuID==0)
+    {
+      unsigned int list_size = list_trees.size();
+      for(unsigned int i=0; i<list_size; i++)
+	{
+	  std::cout <<i <<" ";
+	  list_trees.at(i)->print_topo();
+	}
+    }
+  */
+
   return;
 }
 
+
+void Chain::collectAllUpdates_bwProcs_Lmode()
+{  
+  for(unsigned int p=1; p< nProcesses; p++)
+    {
+      MPI::COMM_WORLD.Barrier();
+      unsigned int list_size = list_trees.size();
+      unsigned int listSize_new = 0;
+      if(cpuID==0) // send list_trees
+	{
+	  MPI::COMM_WORLD.Send(&list_size, 1, MPI::UNSIGNED, p, 3168);
+	  
+	  for(unsigned int ll=0; ll<list_size; ll++)
+	    list_trees.at(ll)->MPIsend_nodeSimple(p);	  
+	}
+      else if(cpuID==p) // receive list_trees
+	{
+	  list_size = 0;
+	  MPI::COMM_WORLD.Recv(&list_size, 1, MPI::UNSIGNED, 0, 3168);
+	  
+	  for(unsigned int ll=0; ll<list_size; ll++)
+	    {
+	      nodeSimple *topo = new nodeSimple;
+	      topo->MPIreceive_coaltree(0);
+	      list_trees.push_back(topo);
+	    }
+
+	  collectAllUpdates_Lmode(0);
+	  listSize_new = list_trees.size();
+	}
+      
+      
+      MPI::COMM_WORLD.Bcast(&listSize_new, 1, MPI::UNSIGNED, p);
+      MPI::COMM_WORLD.Barrier();
+
+      if(cpuID <= p)
+	{
+	  if(listSize_new > list_size) // new unique topologies
+	    {
+	      if(cpuID==p)
+		{
+		  for(unsigned int qq=0; qq<p; qq++)
+		    for(unsigned int tt=list_size; tt<listSize_new; tt++)
+		      list_trees.at(tt)->MPIsend_nodeSimple(qq);		    
+		}
+	      for(unsigned int qq=0; qq<p; qq++)	      
+		{
+		  if(cpuID==qq)
+		    {
+		      for(unsigned int tt=list_size; tt<listSize_new; tt++)
+			{
+			  nodeSimple *topo = new nodeSimple;
+			  topo->MPIreceive_coaltree(p);
+			  list_trees.push_back(topo);
+			}
+		    }
+		}
+	    }	  
+	}
+    }
+}
 
 void Chain::read_newickTrees(IM im)
 {
@@ -2254,6 +2361,7 @@ void Chain::collectAllUpdates_Lmode(unsigned int savingID)
 	  topo->convert(trees_atPrev.at(i), ct, trees_atPrev.at(i)->size_tree()); // Updated by YC 5/8/2014
 	  topo->computeSizes();
 	  list_trees.push_back(topo);
+	  treeIDs.at(savingID).at(i) = 0;	  
 	}
       else
 	{
@@ -2264,6 +2372,7 @@ void Chain::collectAllUpdates_Lmode(unsigned int savingID)
 	      found_sampleTopo = list_trees.at(count)->sameTopo(trees_atPrev.at(i));
 	      count++;
 	    }
+
 	  if(found_sampleTopo == 0)
 	    {
 	      nodeSimple *topo = new nodeSimple;

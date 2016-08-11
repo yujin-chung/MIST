@@ -17,6 +17,26 @@
 #include "Eigen/Dense"
 #include <complex>
 
+void node::assignPopulations2Tips(std::vector<unsigned int> SeqPop)
+{
+  if(isTip)
+    {      
+      // stringstream convert(lc.popNames.at(tipID-1));
+      // convert >> popID;
+      // label = popID-1;
+      popID = SeqPop.at(tipID-1);
+      label = popID-1;
+
+      // std::cout <<"tipID = " << tipID <<"\n";
+      // std::cout <<"label = " << label <<"\n";
+    }
+  else
+    {
+      desc[0]->assignPopulations2Tips(SeqPop);
+      desc[1]->assignPopulations2Tips(SeqPop);
+    }
+}
+
 void node::assignPopulations2Tips(locus lc)
 {
 	if(isTip)
@@ -1484,9 +1504,10 @@ void Chain::compute_observedStates_fromSubtrees(unsigned int id_listTopo, unsign
 void Chain::compute_observedStates_fromTopo()
 {
 	// REMOVE
-  // std::cout << "In Chain::compute_observedStates_fromTopo()\n";
+  //  std::cout << "In Chain::compute_observedStates_fromTopo()\n";
 
   unsigned int numUniqTopo = list_trees.size();
+
   states_observed.resize(numUniqTopo);
   states_observed_freq.resize(numUniqTopo);
   nKinds_lineages.resize(numUniqTopo);
@@ -2583,8 +2604,8 @@ void Chain::compute_eigenValuesVectors_rateMat(popTree* poptree)
 
 void Chain::compute_coefficientsOfElementsInTransitionRateMat(unsigned int nPops)
 {	
-  //std::cout << "Chain::compute_coefficientsOfElementsInTransitionRateMat()\n";
-  //std::cout << "nPops = "<< nPops <<"\n";
+  // std::cout << "Chain::compute_coefficientsOfElementsInTransitionRateMat()\n";
+  // std::cout << "nPops = "<< nPops <<"\n";
 
   // FIXME YC 5/9/2014
   // It works for up to 2 population
@@ -2609,14 +2630,15 @@ void Chain::compute_coefficientsOfElementsInTransitionRateMat(unsigned int nPops
   */
 
   unsigned int numUniqTopo = stateSpaces.size(); // list_trees.size();
-  
-  // Qeigen.resize(numUniqTopo);
+  // std::cout <<"numUniqTopo = "<< numUniqTopo <<"\n";
+
+
   coeff4TransitionRateMat.resize(numUniqTopo);
-  // transitionRateMat.resize(numUniqTopo);
+
   for(unsigned int i=0; i<numUniqTopo; i++)
     {
       unsigned int nGeneCopies = stateSpaces.at(i).size()+1; //list_trees.at(i)->getSize();
-      // Qeigen.at(i).resize(nGeneCopies-1);
+
       coeff4TransitionRateMat.at(i).resize(nGeneCopies-1);
       for(unsigned int j=0; j<nGeneCopies-1; j++)
 	{
@@ -2625,17 +2647,6 @@ void Chain::compute_coefficientsOfElementsInTransitionRateMat(unsigned int nPops
 	  
 	  coeff4TransitionRateMat.at(i).at(j).resize(4);
 	  
-	  // Qeigen.at(i).at(j).resize(3);
-	  /*
-	  Eigen::MatrixXd mat_pop1(n_states+1,n_states+1);
-	  mat_pop1.setZero();
-	  Eigen::MatrixXd mat_pop2(n_states+1,n_states+1);
-	  mat_pop2.setZero();
-	  Eigen::MatrixXd mat_mig1(n_states+1,n_states+1);
-	  mat_mig1.setZero();
-	  Eigen::MatrixXd mat_mig2(n_states+1,n_states+1);
-	  mat_mig22.setZero();
-	  */
 	  for(unsigned int r=0; r< 4; r++)
 	    {
 	      coeff4TransitionRateMat.at(i).at(j).at(r).resize(n_states+1,n_states+1);
@@ -2956,8 +2967,10 @@ void Chain::compute_eigenValuesVectors_subMatOfEigenVectors_MPI(popTree* poptree
       
   topoID_end = topoID_start + subNumTopo-1;
 
-  /*  
-  std::cout << "cpuID = " << cpuID << " topoID_start = " << topoID_start <<" topoID_end = " << topoID_end 
+  /*
+  std::cout << "cpuID = " << cpuID 
+	    << " numUniqTopo = "<< numUniqTopo 
+	    << " topoID_start = " << topoID_start <<" topoID_end = " << topoID_end 
 	    << " subNumTopo = "  << subNumTopo
 	    <<"\n";
   */
@@ -6185,20 +6198,16 @@ void Chain::compute_partialJointPosteriorDensity_overSubLoci_ESS(popTree* poptre
 // YC 5/11/2016
 void Chain::compute_partialJointPosteriorDensity_overSubLoci(popTree* poptree, IM im, unsigned int crrProcID, unsigned int nProcs)
 { 
+  // std::cout <<"In compute_partialJointPosteriorDensity_overSubLoci()\n";
   
   std::chrono::high_resolution_clock::time_point start_t, end_t;
   
   double migRateMax = im.get_migRateMax();
 
-  // if(migRateMax !=0) // not a single population
-    {
-      if(poptree->get_age()>0)
-	compute_eigenValuesVectors_subMatOfEigenVectors_MPI(poptree);
-    }
-  //  else if(migRateMax==0)
-  //  {
-  //    compute_summaryOfCoalTrees(poptree);
-  //  }
+  {
+    if(poptree->get_age()>0)
+      compute_eigenValuesVectors_subMatOfEigenVectors_MPI(poptree);
+  }
 
 
 
@@ -6212,8 +6221,6 @@ void Chain::compute_partialJointPosteriorDensity_overSubLoci(popTree* poptree, I
 
   logExpectationOfCoalProb.resize(numSubLoci);
 
-  // std::cout << "numSubLoci = " << numSubLoci <<"\n";
-  // std::cout << "nSubSample = " << nSubSample <<"\n";
 
   for(unsigned int j=0; j<numSubLoci; j++)
     {
