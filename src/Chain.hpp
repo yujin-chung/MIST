@@ -441,6 +441,7 @@ void update_mutationScaler_Kappa_usePriorsOnly(unsigned int id_crrIter, std::vec
   void compute_partialJointPosteriorDensity_overSubLoci_ESS(popTree* poptree, IM im, unsigned int crrProcID, unsigned int nProcs);
   void compute_partialJointPosteriorDensity_mutationScalars_overSubLoci(popTree* poptree, IM im, unsigned int crrProcID, unsigned int nProcs);
   void compute_partialJointPosteriorDensity_overSubSample_selfNormalized(popTree* poptree, IM im, unsigned int crrProcID, unsigned int nProcs);
+  void find_print_theMaxHeightsTrees();
 
 	// old version
 	unsigned int compute_size_stateSpaces(unsigned int freq, unsigned int nPops);

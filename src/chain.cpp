@@ -55,6 +55,13 @@ void Chain::read_LmodeInputFile(IM im)
     {     
       // read_newickTrees(im);
       read_newickTrees_partial(im);
+
+      // save the list of ranked tree topologies
+      if(cpuID ==0)
+	{
+	  // print_listTrees();
+	  saveListTopo2File();
+	}
     }
   else
     {
@@ -69,6 +76,42 @@ void Chain::read_LmodeInputFile(IM im)
       read_tipIDs_partial(im);
       read_listTrees();
     }
+
+  find_print_theMaxHeightsTrees();
+  
+  return;
+}
+
+void Chain::find_print_theMaxHeightsTrees()
+{
+  double max_age=0;
+  for(unsigned int i=0; i<nSubSample; i++)
+    for(unsigned int j=0; j<numSubLoci; j++)
+      {
+	double age = coalTimes.at(i).at(j).front();
+	// std::cout <<"cpuID =" << cpuID  << " age = " << age <<"\n";
+	if(max_age < age)
+	  {
+	    max_age = age;
+	    /*
+	    std::cout <<"cpuID = " << cpuID <<" max_age=" 
+		      << max_age <<" age = " << age 
+		      << "locusID = " << locusID_start+j 
+		      <<" " ;
+	    trees_atPrev.at(j)->print_coaltree();
+	    */	    
+	  }
+      }
+
+  double max_age_global = 0;
+  MPI::COMM_WORLD.Barrier();
+  MPI::COMM_WORLD.Reduce(&max_age, &max_age_global, 1, MPI_DOUBLE, MPI_MAX, 0);
+
+  if(cpuID ==0)
+    {
+      std::cout <<"\nThe maximum of tree heigths is " << max_age_global <<". If the upper bound of the splitting time is higher than this maximum, please use an upper bound smaller than the maximum height.\n\n";
+    }
+
   return;
 }
 
@@ -78,7 +121,8 @@ void Chain::read_newickTrees_partial(IM im)
 {
   char* inputFile = im.get_newickTreeFileName();
   char* SeqPopFile = im.get_SeqPopFileName();
-  std::cout << "\n Reading "<< inputFile <<"\n";
+  if(cpuID ==0)
+    std::cout << "\n Reading "<< inputFile <<"\n";
 
   /*
   std::cout <<"numSubLoci = "<< numSubLoci 
@@ -128,7 +172,7 @@ void Chain::read_newickTrees_partial(IM im)
 
       if(locusID >=locusID_start && locusID <= locusID_end)
 	{
-	  std::cout << "locusID = " << locusID  << " tree_string = " << tree_string <<"\n";
+	  // std::cout << "locusID = " << locusID  << " tree_string = " << tree_string <<"\n";
 	  
 	  node* tree = new node;
 	  tree->convertFromNewick(tree_string,1);
@@ -150,6 +194,8 @@ void Chain::read_newickTrees_partial(IM im)
   
   if(cpuID == 0)
     collectAllUpdates_Lmode(0);
+  
+  MPI::COMM_WORLD.Barrier();
 
   collectAllUpdates_bwProcs_Lmode();
 
@@ -1456,6 +1502,9 @@ void Chain::saveEachLogPrior()
 
 void Chain::saveListTopo2File()
 {
+  // std::cout <<"In Chain::saveListTopo2File()\n";
+  // std::cout << "list_trees.size() = " << list_trees.size() <<"\n";
+
   ofstream treefile;
   treefile.open ("MCMCsample_listTopo.txt");
   treefile << "treeID\ttopo\n";
@@ -1869,7 +1918,7 @@ void Chain::compute_coalTimes_tipIDs(unsigned int iter, unsigned int id_locus, n
 	}
       else if(tree->desc[0]->isTip == 1 && tree->desc[1]->isTip ==1) 
 	{
-	  if(tree->desc[0]->tipID < tree->desc[1]->tipID) 
+	  if(tree->desc[0]->tipID < tree->desc[1]->tipID) // smaller tipID is the first
 	    {
 	      compute_coalTimes_tipIDs(iter,id_locus,tree->desc[0]);
 	      compute_coalTimes_tipIDs(iter,id_locus,tree->desc[1]);	      
@@ -1881,7 +1930,7 @@ void Chain::compute_coalTimes_tipIDs(unsigned int iter, unsigned int id_locus, n
 	    }
 	  else
 	    {
-	      std::cout << "/n*** Error in Chain::compute_coalTimes_tipIDs() ***\n";
+	      std::cout << "\n*** Error in Chain::compute_coalTimes_tipIDs() ***\n";
 	      std::cout << "(sub)tree is ";
 	      tree->print_coaltree();
 	      std::cout << "tree->desc[0]->age = " << tree->desc[0]->age
@@ -1891,12 +1940,27 @@ void Chain::compute_coalTimes_tipIDs(unsigned int iter, unsigned int id_locus, n
 			<< "\n";
 	    }
 	}
+      else if(tree->desc[0]->age == tree->desc[1]->age && tree->desc[0]->isTip == 0 && tree->desc[1]->isTip ==0)
+	{
+	  // same ages of two coalescent events
+	  // It can happen when the mles of trees are analyzed in step 2. - YC 8/17/2016
+	  tree->desc[1]->age += pow(10,-20);
+	  // REMOVE
+	  // std::cout <<" tree->desc[0]->age = " << tree->desc[0]->age 
+	  //	    <<" tree->desc[1]->age =" << tree->desc[1]->age <<"\n";
+	  compute_coalTimes_tipIDs(iter,id_locus,tree->desc[0]);
+	  compute_coalTimes_tipIDs(iter,id_locus,tree->desc[1]);	 
+	}
       else
 	{
 	  std::cout << "/n*** Error in Chain::compute_coalTimes_tipIDs() ***\n";
 	  std::cout << "(sub)tree is ";
 	  tree->print_coaltree();
 	  std::cout << "tree->isTip = "<< tree->isTip
+		    << "tree->desc[0]->age = " << tree->desc[0]->age
+		    << "tree->desc[1]->age = " << tree->desc[1]->age
+		    << "tree->desc[0]->isTip = "<< tree->desc[0]->isTip
+		    << "tree->desc[1]->isTip = "<< tree->desc[1]->isTip
 		    << "\n";  	  
 	}
     }

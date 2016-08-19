@@ -2096,6 +2096,7 @@ void Chain::initializeLmode(IM im, unsigned int crrProcID, unsigned int nProcs)
 
 void Chain::prepare_Lmode(popTree* poptree, IM im)
 {
+  // std::cout <<"In  Chain::prepare_Lmode()\n";
   // std::cout << "poptree->get_age() = " << poptree->get_age()<<"\n";
   if(im.get_migRateMax()!=0)
     {

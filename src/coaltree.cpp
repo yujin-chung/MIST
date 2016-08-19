@@ -241,26 +241,6 @@ void node::convertFromNewick(string tree, unsigned int root)
   return;
 }
 
-/*
-void nodeSimple::assignNodeLabel()
-{
-  if(isTip)
-    nodeLabel = popID;
-  else
-    {
-      firstChild->assignNodeLabel();
-      secondChild->assignNodeLabel();
-      int label1 = firstChild->get_nodeLabel();
-      int label2 = secondChild->get_nodeLabel();
-      if(label1==label2)
-	nodeLabel = label1;
-      else
-	nodeLabel = -1;
-    }
-  std::cout <<"nodeLabel = "<< nodeLabel <<"\n";
-  return;
-}
-*/
 
 
 /***
@@ -714,6 +694,11 @@ void nodeSimple::convert(node* tree, std::list<double> coaltimes, unsigned int n
 	      firstChild->convert(tree->desc[1],coaltimes,nLineages);
 	      secondChild->convert(tree->desc[0],coaltimes,nLineages);
 	    }
+	}
+      else if(tree->desc[0]->age == tree->desc[1]->age)
+	{
+	  firstChild->convert(tree->desc[0],coaltimes,nLineages);
+	  secondChild->convert(tree->desc[1],coaltimes,nLineages);	  
 	}
       firstChild->par = this;
       secondChild->par = this;

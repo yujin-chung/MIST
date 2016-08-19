@@ -524,8 +524,7 @@ int main (int argc, char *argv[])
 	    {
 	      MaxPosterior MAPestimate;
 	      
-	      // if(im.get_migRateMax()!=0)
-		coldCh.prepare_Lmode(poptree, im);
+	      coldCh.prepare_Lmode(poptree, im);
 	      
 		// std::cout <<"Done with reading input files.\n";
 
