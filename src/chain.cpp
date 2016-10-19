@@ -1944,7 +1944,12 @@ void Chain::compute_coalTimes_tipIDs(unsigned int iter, unsigned int id_locus, n
 	{
 	  // same ages of two coalescent events
 	  // It can happen when the mles of trees are analyzed in step 2. - YC 8/17/2016
-	  tree->desc[1]->age += pow(10,-20);
+	  tree->desc[1]->age += pow(10,-10);
+	  if(tree->age < tree->desc[1]->age)
+	    {
+	      tree->desc[1]->age =(tree->age+ tree->desc[1]->age)/2;
+	    }
+
 	  // REMOVE
 	  // std::cout <<" tree->desc[0]->age = " << tree->desc[0]->age 
 	  //	    <<" tree->desc[1]->age =" << tree->desc[1]->age <<"\n";

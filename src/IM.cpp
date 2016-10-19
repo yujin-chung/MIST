@@ -28,6 +28,9 @@ void IM::initialize_MCMCsetting(int nChains, int nTreeSample, int samplingFromPr
 	samplingFromPriorOnly = samplingFromPriors;
 }
 
+
+
+
  // If the returning value is 0, then stop the software. If 1, execute MCMC.
 unsigned int IM::initialization(int argc, char *argv[], unsigned int processID)
 {   
@@ -59,6 +62,8 @@ unsigned int IM::initialization(int argc, char *argv[], unsigned int processID)
   locus locus_tmp;
   locus_tmp.initialize_multiLocusSpecific_mutationRate(multiLocusSpecific_mutationRate);
   loci.push_back(locus_tmp);
+  
+  bool execute = 1;
 
   if(argc <= 4){
     if(processID==0)
@@ -68,7 +73,7 @@ unsigned int IM::initialization(int argc, char *argv[], unsigned int processID)
       }
     return 0;
 
-  }else{  
+  }else{
     if(processID == 0)
       {
 	std::cout << "Command line: " ;
@@ -163,61 +168,71 @@ unsigned int IM::initialization(int argc, char *argv[], unsigned int processID)
 	  case 'I':
 		if(MLmodes==1) // MCMC
 		  {
-		    ifstream inFile;
-		    string word;
-		    unsigned int line_counter = 0;
-		    unsigned int locus_counter = 0;
-		    loci.resize(0);
-		    
-		    inFile.open(argv[counter+1]);
-		    while(!inFile.eof() && (locus_counter == 0 || locus_counter < n_loci))
-		      {
-			locus locus_tmp;
-			locus_tmp.initialize_multiLocusSpecific_mutationRate(multiLocusSpecific_mutationRate);
-			if(line_counter == 0)
-			  {
-			    // inFile >> poptree_string;
-			    unsigned int nCopies;
-			    inFile >> nCopies;
-			    locus_tmp.set_nGeneCopies(nCopies);
-			    inFile >> n_loci;
-			    if(processID == 0)
-			      {
-				// std::cout << "Population tree is" << poptree_string <<".\n";
-				std::cout << "Reading the data file, '" << argv[counter+1]<<"'...\n";
-				std::cout << nCopies <<" gene copies and " << n_loci <<" loci.\n";
-			      }
-			    line_counter +=2;
-			  }
-			else
-			  {
-			    unsigned int nSites;
-			    inFile >> nSites;
-			    locus_tmp.set_nSites(nSites);
-			    inFile >> word;
-			    locus_tmp.initializeLikelihoodModel(word);
-			    line_counter++;
-			    vector<vector<char> > seq; /// The sequence of a locus, containing
-			    /// the sequences of "n_genes" genes.
-			    /// 2-d array: "n_genes" by "n_sites"
-			    unsigned int nGeneCopies = locus_tmp.get_nGeneCopies();
-			    for(unsigned int i=0; i<nGeneCopies; i++)
-			      {		
-				inFile >> word;
-				locus_tmp.popNames.push_back(word);
-				inFile >> word;
-				locus_tmp.tipNames.push_back(word);
-				inFile >> word;
-				vector<char> row(word.c_str(), word.c_str() + word.size() + 1u);
+		    /**  YC 10/19/2016
+		     *   To check if the input file exists   **/
+		    bool FileExists = file_exist(argv[counter+1]);
+		    execute = FileExists;
+		    if(execute==0){ // The file does not exist or is not accessible.
+		      std::cout <<"\nERROR: The file '" << argv[counter+1] << "' does not exist or is not accessible.\n";
+		      std::cout <<"MIST stopped.\n";
+		      counter = argc;
+		    }else{// the file exists 
+		      ifstream inFile;
+		      string word;
+		      unsigned int line_counter = 0;
+		      unsigned int locus_counter = 0;
+		      loci.resize(0);
+		      
+		      inFile.open(argv[counter+1]);
+		      while(!inFile.eof() && (locus_counter == 0 || locus_counter < n_loci))
+			{
+			  locus locus_tmp;
+			  locus_tmp.initialize_multiLocusSpecific_mutationRate(multiLocusSpecific_mutationRate);
+			  if(line_counter == 0)
+			    {
+			      // inFile >> poptree_string;
+			      unsigned int nCopies;
+			      inFile >> nCopies;
+			      locus_tmp.set_nGeneCopies(nCopies);
+			      inFile >> n_loci;
+			      if(processID == 0)
+				{
+				  // std::cout << "Population tree is" << poptree_string <<".\n";
+				  std::cout << "Reading the data file, '" << argv[counter+1]<<"'...\n";
+				  std::cout << nCopies <<" gene copies and " << n_loci <<" loci.\n";
+				}
+			      line_counter +=2;
+			    }
+			  else
+			    {
+			      unsigned int nSites;
+			      inFile >> nSites;
+			      locus_tmp.set_nSites(nSites);
+			      inFile >> word;
+			      locus_tmp.initializeLikelihoodModel(word);
+			      line_counter++;
+			      vector<vector<char> > seq; /// The sequence of a locus, containing
+			      /// the sequences of "n_genes" genes.
+			      /// 2-d array: "n_genes" by "n_sites"
+			      unsigned int nGeneCopies = locus_tmp.get_nGeneCopies();
+			      for(unsigned int i=0; i<nGeneCopies; i++)
+				{		
+				  inFile >> word;
+				  locus_tmp.popNames.push_back(word);
+				  inFile >> word;
+				  locus_tmp.tipNames.push_back(word);
+				  inFile >> word;
+				  vector<char> row(word.c_str(), word.c_str() + word.size() + 1u);
 				seq.push_back(row);
-			      }
-			    line_counter +=  nGeneCopies; //locus_tmp.n_geneCopies;
-			    locus_tmp.compute_pi_uniqSeq(seq);
+				}
+			      line_counter +=  nGeneCopies; //locus_tmp.n_geneCopies;
+			      locus_tmp.compute_pi_uniqSeq(seq);
 			    loci.push_back(locus_tmp);
 			    locus_counter++;
-			  }
-		      }
-		    inFile.close();
+			    }
+			}
+		      inFile.close();
+		    }
 		  }
 		else
 		  nParaVectors = atoi(argv[counter+1]);
@@ -248,9 +263,29 @@ unsigned int IM::initialization(int argc, char *argv[], unsigned int processID)
 		  if(newickTreeFormat == 1)
 		    {
 		      counter++;
-		      newickTreeFileName = argv[counter+1];
-		      counter++;
-		      SeqPopFileName = argv[counter+1];
+		      /**  YC 10/19/2016
+		       *   To check if the input file exists   **/
+		      bool FileExists = file_exist(argv[counter+1]);
+		      execute = FileExists;
+		      if(execute==0){ // The file does not exist or is not accessible.
+			std::cout <<"\nERROR: The file '" << argv[counter+1] << "' does not exist or is not accessible.\n";
+			std::cout <<"MIST stopped.\n";
+			counter = argc;
+		      }else{// the file exists 
+			newickTreeFileName = argv[counter+1];
+			counter++;
+			/**  YC 10/19/2016
+			 *   To check if the input file exists   **/
+			bool FileExists = file_exist(argv[counter+1]);
+			execute = FileExists;
+			if(execute==0){ // The file does not exist or is not accessible.
+			  std::cout <<"\nERROR: The file '" << argv[counter+1] << "' does not exist or is not accessible.\n";
+			  std::cout <<"MIST stopped.\n";
+			  counter = argc;
+			}else{// the file exists			  
+			  SeqPopFileName = argv[counter+1];
+			}
+		      }
 		    }
 		}
 	      break;
@@ -304,7 +339,7 @@ unsigned int IM::initialization(int argc, char *argv[], unsigned int processID)
   Eigen::Vector3d paraMax(popSizeMax, splittingTimeMax, migRateMax);
   
   
-  return 1;
+  return execute;
   }
 }
 
