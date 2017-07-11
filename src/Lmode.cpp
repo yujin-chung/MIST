@@ -20,15 +20,14 @@
 void node::assignPopulations2Tips(std::vector<unsigned int> SeqPop)
 {
   if(isTip)
-    {      
-      // stringstream convert(lc.popNames.at(tipID-1));
-      // convert >> popID;
-      // label = popID-1;
+    {   
       popID = SeqPop.at(tipID-1);
       label = popID-1;
 
+      #ifdef DEBUG
       // std::cout <<"tipID = " << tipID <<"\n";
       // std::cout <<"label = " << label <<"\n";
+#endif // DEBUG
     }
   else
     {
@@ -1503,8 +1502,9 @@ void Chain::compute_observedStates_fromSubtrees(unsigned int id_listTopo, unsign
 
 void Chain::compute_observedStates_fromTopo()
 {
-	// REMOVE
-  //  std::cout << "In Chain::compute_observedStates_fromTopo()\n";
+  #ifdef DEBUG
+  // std::cout << "In Chain::compute_observedStates_fromTopo()\n";
+#endif// DEBUG
 
   unsigned int numUniqTopo = list_trees.size();
 
@@ -1514,8 +1514,6 @@ void Chain::compute_observedStates_fromTopo()
   
   for(unsigned int i=0; i<numUniqTopo; i++)
     {
-		//REMOVE
-		//list_trees.at(i)->print_topo();
       
       unsigned int nGeneCopies = list_trees.at(i)->getSize();
       std::vector<nodeSimple*> subtrees;
@@ -1531,7 +1529,37 @@ void Chain::compute_observedStates_fromTopo()
 	{
 	  nKinds_lineages.at(i).at(j) = states_observed.at(i).at(j).size();
 	}
+    
     }	
+    
+#ifdef DEBUG
+  /*
+      for(unsigned int ii=0; ii<numUniqTopo; ii++)
+	{
+	  std::cout <<"ii = "<<ii <<" ";
+	  list_trees.at(ii)->print_topo();
+	  for(unsigned int jj=0; jj< states_observed.at(ii).size(); jj++)
+	    {
+	      std::cout <<"ii="<<ii<<" jj="<<jj<<" states_observed.at(ii).at(jj) = ";
+	      for(unsigned int kk=0; kk<states_observed.at(ii).at(jj).size(); kk++)
+		std::cout <<states_observed.at(ii).at(jj).at(kk) <<" ";
+	      std::cout <<"\n";
+	  }
+	for(unsigned int jj=0; jj<states_observed_freq.at(ii).size(); jj++)
+	  {
+	    std::cout <<"ii="<<ii<<" jj="<<jj<<" states_observed_freq.at(ii).at(jj) = ";
+	      for(unsigned int kk=0; kk<states_observed_freq.at(ii).at(jj).size(); kk++)
+		std::cout <<states_observed_freq.at(ii).at(jj).at(kk) <<" ";
+	    std::cout <<"\n";
+	  }
+	for(unsigned int jj=0; jj<nKinds_lineages.at(ii).size(); jj++)
+	std::cout <<"ii="<<ii<< "jj="<<jj << "nKinds_lineages.at(ii).at(jj) = " <<nKinds_lineages.at(ii).at(jj) <<"\n";
+	}
+  */
+#endif//DEBUG
+  #ifdef DEBUG
+      //  std::cout << "Exiting Chain::compute_observedStates_fromTopo()\n";
+#endif// DEBUG
   
   return;
 }
@@ -1616,6 +1644,9 @@ Eigen::MatrixXd Chain::compute_stateSpaces_recursion(std::vector<unsigned int> f
 
 void Chain::compute_stateSpaces(unsigned int nPops)
 {
+  #ifdef DEBUG
+  // std::cout <<" Chain::compute_stateSpaces(unsigned int nPops)\n";
+#endif //DEBUG
   unsigned int numUniqTopo = list_trees.size();
   stateSpaces.resize(numUniqTopo);
   for(unsigned int i=0; i<numUniqTopo; i++)
@@ -1624,15 +1655,25 @@ void Chain::compute_stateSpaces(unsigned int nPops)
       stateSpaces.at(i).resize(nGeneCopies-1);
       for(unsigned int j=0; j<nGeneCopies-1; j++)
 	{
+	  /*
 	  if(i > 0 && j==0) /// the state spaces for the first time period (until the first coalescent event) are the same across all the trees
 	    stateSpaces.at(i).at(0) = stateSpaces.at(0).at(0);
 	  else
 	    {
 	      stateSpaces.at(i).at(j) = compute_stateSpaces_recursion(states_observed_freq.at(i).at(j), nPops);
 	    }
+	  */
+	  // BUG fixed. 7/11/2017
+	  // The state spaces of a tree topology from the list of unique tree topology can be different,
+	  // when subtrees of them are considered.
+	  stateSpaces.at(i).at(j) = compute_stateSpaces_recursion(states_observed_freq.at(i).at(j), nPops);
 	  
-	  // REMOVE
-	  // std::cout << stateSpaces.at(i).at(j) <<"\n\n";
+	  #ifdef DEBUG
+	  /*
+	  std::cout <<"TopoID i = "<< i <<"\n";
+	   std::cout << "stateSpaces.at(i).at(j)  =" <<stateSpaces.at(i).at(j) <<"\n";
+	  */
+#endif //DEBUG
 	}
     }
   
@@ -1979,7 +2020,7 @@ void Chain::compute_possiblePaths(unsigned int nPops)
 	return;
 }
 
-
+// computing the size of equivalence class.
 void Chain::compute_numTrees(unsigned int nPops)
 {
   unsigned int size =list_trees.size();
@@ -2003,7 +2044,7 @@ void Chain::compute_numTrees(unsigned int nPops)
 }
 
 
-void Chain::initializeLmode(IM im, unsigned int crrProcID, unsigned int nProcs)
+void Chain::initializeLmode( IM im, unsigned int crrProcID, unsigned int nProcs)
 {
   percentile_4upperBoundOfTMRCA =100; // this option is not used any longer - YC 6/23/2015
 
@@ -2015,7 +2056,11 @@ void Chain::initializeLmode(IM im, unsigned int crrProcID, unsigned int nProcs)
   multiLocusSpecific_mutationRate = im.get_multiLocusSpecific_mutationRate();
   nProcesses = nProcs;
   cpuID = crrProcID;
-
+  // for subtrees
+  Forest = im.get_Forest();
+  sizeCoalsubtree = im.get_sizeCoalsubtree();
+  sizePopsubtree =  im.get_sizePopsubtree();
+  
   if(lociInParallel==1) // CPUs handle different loci
     {
       nSubSample = nTrees;
@@ -2096,8 +2141,10 @@ void Chain::initializeLmode(IM im, unsigned int crrProcID, unsigned int nProcs)
 
 void Chain::prepare_Lmode(popTree* poptree, IM im)
 {
-  // std::cout <<"In  Chain::prepare_Lmode()\n";
+  #ifdef DEBUG
+  //  std::cout <<"\n\nIn  Chain::prepare_Lmode()\n";
   // std::cout << "poptree->get_age() = " << poptree->get_age()<<"\n";
+#endif //DEBUG
   if(im.get_migRateMax()!=0)
     {
       compute_observedStates_fromTopo();
@@ -2223,6 +2270,10 @@ void Chain::compute_numSameCoalEvents_inAncPop()
 
 void Chain::compute_possiblePaths_nPossibleCoalEvents(unsigned int nPops)
 {
+  #ifdef DEBUG
+  // std::cout <<"In Chain::compute_possiblePaths_nPossibleCoalEvents(unsigned int nPops)\n";
+#endif //DEBUG
+  
   unsigned int numUniqTopo = list_trees.size();
   possiblePaths.resize(numUniqTopo);
   nPossibleCoalEvents.resize(numUniqTopo);
@@ -2236,7 +2287,7 @@ void Chain::compute_possiblePaths_nPossibleCoalEvents(unsigned int nPops)
 	  if(j==0)
 	    possiblePaths.at(i).at(j).resize(nPops+1);
 	  else
-	    possiblePaths.at(i).at(j).resize(nPops*2);
+	    possiblePaths.at(i).at(j).resize(nPops * 2);
 	  
 	  nPossibleCoalEvents.at(i).at(j).resize(nPops+1); // the last case is for the ancestral population.
 	}
@@ -2246,18 +2297,23 @@ void Chain::compute_possiblePaths_nPossibleCoalEvents(unsigned int nPops)
   for(unsigned int i=0; i<numUniqTopo; i++)
     {
       // REMOVE
+      #ifdef DEBUG
       /*
       std::cout << "tree is ";
       list_trees.at(i)-> print_topo();
       std::cout << "id_initialState = " <<id_initialState << "\n";
       */
+      #endif
 
       unsigned int nGeneCopies = list_trees.at(i)->getSize();
       for(unsigned int j=0; j<nGeneCopies-1; j++)
 	{
-	  // std::cout << "j = " << j <<"\n\n";
-	  
-	  // std::cout << stateSpaces.at(i).at(j) <<"\n\n";
+	  #ifdef DEBUG
+	  /*
+	  std::cout << "j = " << j <<"\n\n";
+	  std::cout << stateSpaces.at(i).at(j) <<"\n\n";
+	  */
+#endif //DEBUG
 	  
 	  
 	  if(j==0) // initial state of a tree topology
@@ -2292,7 +2348,6 @@ void Chain::compute_possiblePaths_nPossibleCoalEvents(unsigned int nPops)
 		{
 		  unsigned int numLin = states_observed_freq.at(i).at(j).at(count);
 		  unsigned int requiredNum = minimumFreq(count);
-		  // std::cout << "popID = " << nPops << " numLin = " << numLin << " and requiredNum = " << requiredNum <<"\n";
 		  if(numLin < requiredNum)
 		    {
 		      coal_possible = 0;
@@ -2320,7 +2375,12 @@ void Chain::compute_possiblePaths_nPossibleCoalEvents(unsigned int nPops)
 			{
 			  unsigned int numLin = stateSpaces.at(i).at(j)(id_state,p*nKinds+count);
 			  unsigned int requiredNum = minimumFreq(count);
-			  // std::cout << "popID = " << p << "numLin = " << numLin << " and requiredNum = " << requiredNum <<"\n";
+			  #ifdef DEBUG
+			  /*
+			  std::cout <<"count = "<< count;
+			   std::cout << " popID = " << p << " numLin = " << numLin << " and requiredNum = " << requiredNum <<"\n";
+			  */
+#endif //DEBUG
 			  if(numLin < requiredNum)
 			    {
 			      coal_possible = 0;
@@ -2373,9 +2433,13 @@ void Chain::compute_possiblePaths_nPossibleCoalEvents(unsigned int nPops)
 				    nextState(0,pp*next_nKinds+next_nKinds-1) =1;
 				}
 			      
-			      // REMOVE
-			      //std::cout << "crr state is " <<	stateSpaces.at(i).at(j).row(id_state) <<"\n";
-			      //std::cout << "next state is " << nextState <<"\n";
+#ifdef DEBUG
+			      /*
+			      std::cout <<"i = "<<i <<"j="<<j <<" id_state = "<<id_state <<"\n";
+			      std::cout << "crr state is " <<	stateSpaces.at(i).at(j).row(id_state) <<"\n";
+			      std::cout << "next state is " << nextState <<"\n";
+			      */
+#endif //DEBUG
 			      
 			      unsigned int id_nextState = 0;
 			      unsigned int found_id_nextState =0;
@@ -2393,15 +2457,17 @@ void Chain::compute_possiblePaths_nPossibleCoalEvents(unsigned int nPops)
 		} // END of for(unsigned int id_state=0; id_state<spaceSize; id_state++)
 		  
 	      // REMOVE
+	      #ifdef DEBUG
 	      /*
-		std::cout << "minmumFreq = \n"<< minimumFreq <<"\n";
+		std::cout << "minmumFreq = "<< minimumFreq <<"\n";
 		std::cout << stateSpaces.at(i).at(j) <<"\n\n";
 		for(unsigned int p=0; p<nPops; p++)
 		{
-		for(unsigned int k=0; k< possiblePaths.at(i).at(j).at(p).size(); k++)
-		std::cout <<"p="<<p <<" k="<< k<< " id = "<< possiblePaths.at(i).at(j).at(p).at(k) <<"\n";
-				}
+		  for(unsigned int k=0; k< possiblePaths.at(i).at(j).at(p).size(); k++)
+		    std::cout <<"p="<<p <<" k="<< k<< " id = "<< possiblePaths.at(i).at(j).at(p).at(k) <<"\n";
+		}
 	      */
+#endif//DEBUG
 	      
 	      
 	    }
@@ -2945,8 +3011,13 @@ void Chain::compute_eigenValuesVectors_subMatOfEigenVectors(popTree* poptree)
 // YC 2/24/2016
 void Chain::compute_eigenValuesVectors_subMatOfEigenVectors_MPI(popTree* poptree)
 {
+  #ifdef DEBUG
+  // std::cout<<"In Chain::compute_eigenValuesVectors_subMatOfEigenVectors_MPI(popTree* poptree)\n";
+#endif //DEBUG
+  /*
   std::chrono::high_resolution_clock::time_point start_t, end_t;
   start_t= std::chrono::high_resolution_clock::now();
+  */
 
   unsigned int nPops = poptree->size();
 
@@ -3006,6 +3077,9 @@ void Chain::compute_eigenValuesVectors_subMatOfEigenVectors_MPI(popTree* poptree
 	  Qeigen.at(i-topoID_start).resize(nGeneCopies-1);
 	  for(unsigned int j=0; j<nGeneCopies-1; j++)
 	    {
+	      #ifdef DEBUG
+	      // std::cout <<"topoID i="<< i <<" coalevent j="<<j <<"\n";
+#endif //DEBUG
 	      Qeigen.at(i-topoID_start).at(j).resize(3);
 	  
 
@@ -3042,6 +3116,15 @@ void Chain::compute_eigenValuesVectors_subMatOfEigenVectors_MPI(popTree* poptree
 	      Qeigen.at(i-topoID_start).at(j).at(0) = svd.eigenvalues();
 	      Qeigen.at(i-topoID_start).at(j).at(1) = svd.eigenvectors();
 	      Qeigen.at(i-topoID_start).at(j).at(2) = svd.eigenvectors().inverse();
+
+
+	      #ifdef DEBUG
+	      /*
+	      std::cout <<"svd.eigenvalues = "<< svd.eigenvalues() <<"\n";
+	      std::cout <<"svd.eigenvectors = "<<svd.eigenvectors() <<"\n";
+	      std::cout <<"svd.eigenvelctors.inv = "<<svd.eigenvectors().inverse()<<"\n";
+	      */
+#endif //DEBUG
 	      // Checking eigen values and eigen vectors
 	      /*
 		Eigen::MatrixXcd I = Qeigen.at(i).at(j).at(1) * Qeigen.at(i).at(j).at(2);
@@ -3070,11 +3153,13 @@ void Chain::compute_eigenValuesVectors_subMatOfEigenVectors_MPI(popTree* poptree
 	}
   
       //--- END of computing eigen values and eigen vectors ---//
+      /*
       end_t= std::chrono::high_resolution_clock::now();
       eachComputingTime_eigen = std::chrono::duration_cast<std::chrono::microseconds>(end_t - start_t);
+      */
     }
   //-- Getting sub-matrices of eigen vector matrices ---//
-  start_t= std::chrono::high_resolution_clock::now();
+  //  start_t= std::chrono::high_resolution_clock::now();
 
   // std::cout << "cpuID = " << cpuID <<" here\n";
 
@@ -3088,6 +3173,10 @@ void Chain::compute_eigenValuesVectors_subMatOfEigenVectors_MPI(popTree* poptree
       // std::cout << "cpuID = " << cpuID <<" here3\n";
       for(unsigned int j=0; j<nGeneCopies-1; j++)
 	{
+#ifdef DEBUG
+	  //	  std::cout <<"topoID i="<< i <<" coal event j="<<j <<"\n";
+#endif //DEBUG
+	  
 	  subMatV.at(i).at(j).resize(3);
 	  if(subNumTopo>0 && i >= topoID_start && i <= topoID_end)
 	    {
@@ -3098,10 +3187,10 @@ void Chain::compute_eigenValuesVectors_subMatOfEigenVectors_MPI(popTree* poptree
 	      //  case 2: submstrix of inverse eigenvector matrix for population merging (all transient paths)
 	      
 	      
-	      // case 0 
+	      // case 0: eigen vector
 	      if(j==0)
 		{ 
-		  subMatV.at(i).at(j).at(0) =  Qeigen.at(i-topoID_start).at(j).at(1).row(possiblePaths.at(i).at(j).at(0).at(0));	      
+		  subMatV.at(i).at(j).at(0) =  Qeigen.at(i-topoID_start).at(j).at(1).row(possiblePaths.at(i).at(j).at(0).at(0));
 		}
 	      else
 		{
@@ -3110,6 +3199,14 @@ void Chain::compute_eigenValuesVectors_subMatOfEigenVectors_MPI(popTree* poptree
 		    {
 		      nr += possiblePaths.at(i).at(j).at(p).size();
 		    }
+	      #ifdef DEBUG
+		  /*
+		  if(i==1 & j==1)
+		    {
+		      std::cout <<"(the number of row) nr = "<< nr <<"\n"; 
+		    }
+		  */
+#endif //DEBUG
 		  subMatV.at(i).at(j).at(0).resize(nr, Qeigen.at(i-topoID_start).at(j).at(1).cols());
 		  unsigned int count_r = 0;
 		  for(unsigned int p=0; p<nPops; p++)
@@ -3122,6 +3219,9 @@ void Chain::compute_eigenValuesVectors_subMatOfEigenVectors_MPI(popTree* poptree
 			}
 		    }    
 		}
+	      #ifdef DEBUG
+	      // std::cout <<"eigenvector subMatV.at(i).at(j).at(0) = " << subMatV.at(i).at(j).at(0) <<"\n";
+#endif //DEBUG
 	      
 	      // case 1
 	      unsigned int id_next = 0;
@@ -3144,7 +3244,10 @@ void Chain::compute_eigenValuesVectors_subMatOfEigenVectors_MPI(popTree* poptree
 		      subMatV.at(i).at(j).at(1).col(count) =Qeigen.at(i-topoID_start).at(j).at(2).col(id_col)* nCoalEvents *2/popSize(0,p);
 		      count++;
 		    }
-		}	 
+		}
+	      #ifdef DEBUG
+	      //std::cout <<"eigenvector(inv) subMatV.at(i).at(j).at(1) = " << subMatV.at(i).at(j).at(1) <<"\n";
+#endif //DEBUG	 
 	      
 	      // case 2
 	      unsigned int nTransientStates = Qeigen.at(i-topoID_start).at(j).at(2).cols()-1;
@@ -3285,11 +3388,16 @@ void Chain::compute_eigenValuesVectors_subMatOfEigenVectors_MPI(popTree* poptree
     }
 
   //-- End of getting sub-matrices of eigen vector matrices ---//
+  /*
   end_t= std::chrono::high_resolution_clock::now();
   eachComputingTime_eigen_subMatOfEigenVectors = std::chrono::duration_cast<std::chrono::microseconds>(end_t - start_t);
+  */
 
   Qeigen.resize(0);
 
+  #ifdef DEBUG
+  // std::cout<<"Exiting Chain::compute_eigenValuesVectors_subMatOfEigenVectors_MPI(popTree* poptree)\n";
+#endif //DEBUG
   return;
   
 }
@@ -3984,8 +4092,13 @@ double Chain::compute_conditionalProb(unsigned int id_sample, unsigned int id_lo
 
 void nodeSimple::assign_age_nodeLabel_popSize(std::vector<double> coalT, std::vector<double> allPopSize, double splittingTime)
 {
-  unsigned int nGeneCopies = coalT.size()+1; 
-  if(rank > nGeneCopies)
+  // unsigned int nGeneCopies = coalT.size()+1; 
+#ifdef DEBUG
+  // std::cout <<"nodeSimple::assign_age_nodeLabel_popSize\n";
+  // std::cout <<"splittingTime = "<<splittingTime <<"\n";
+  // std::cout <<"rank = "<< rank <<" nGeneCopies ="<< nGeneCopies<<"\n";
+#endif // DEBUG
+  if(rank > totalNumSeq) //(rank > nGeneCopies)
     {
       isTip =0;
       firstChild->assign_age_nodeLabel_popSize(coalT,allPopSize,splittingTime);
@@ -3994,11 +4107,20 @@ void nodeSimple::assign_age_nodeLabel_popSize(std::vector<double> coalT, std::ve
   else
     isTip =1;
 
-  if(rank <= nGeneCopies)
+ 
+  if(rank <= totalNumSeq) // nGeneCopies)
     age =0;
   else
-    age = coalT.at(rank-1-nGeneCopies);
-  // std::cout <<"rank = "<< rank << " age = "<< age<<"\n";
+    age = coalT.at(rank-1-totalNumSeq); // (rank-1-nGeneCopies);
+ 
+
+  #ifdef DEBUG
+  /*
+ std::cout <<"rank = "<< rank << " age = "<< age<<"\n";
+ for(unsigned int i=0; i<allPopSize.size(); i++)
+   std::cout <<"i = "<<i <<" allPopSize.at(i) = "<< allPopSize.at(i) <<"\n";
+  */
+#endif //DEBUG
 
   // determine 'nodeLabel' 
   if(age!=0)
@@ -4013,7 +4135,7 @@ void nodeSimple::assign_age_nodeLabel_popSize(std::vector<double> coalT, std::ve
       else
 	{
 	  if(age >=splittingTime)
-	    {
+	    {	      
 	      nodeLabel = allPopSize.size();
 	      popSize = allPopSize.at(nodeLabel-1);
 	    }
@@ -4037,7 +4159,11 @@ void nodeSimple::assign_age_nodeLabel_popSize(std::vector<double> coalT, std::ve
       nodeLabel = popID;
       popSize = 0;
     }
-  // std::cout <<"nodeLabel = "<< nodeLabel << " popSize ="<< popSize <<"\n";
+  
+  #ifdef DEBUG
+  // std::cout <<"nodeLabel = "<< nodeLabel << " popSize ="<< popSize <<" popID = "<< popID <<"\n";
+  // std::cout <<"Exiting nodeSimple::assign_age_nodeLabel_popSize\n";
+#endif //DEBUG
   
   return;
 }
@@ -4118,12 +4244,14 @@ unsigned int nodeSimple::compute_maxNumLin(int label)
 long double nodeSimple::compute_logProb_zeroMig(std::vector<double> coalT, std::vector<double> allPopSize, double splittingTime)
 {
   unsigned int nGeneCopies = coalT.size()+1; 
-  long double logProb=0; 
+  long double logProb=0;
+  #ifdef DEBUG
   /*
   std::cout <<"splittingTime = "<< splittingTime <<"\n";
   std::cout <<"nodeLabel = " << nodeLabel <<"\n";
   std::cout <<"popSize = "<< popSize <<"\n";
   */
+#endif // DEBUG
   unsigned int nEvents = 0;
   if(nodeLabel==-1)
     {
@@ -4240,7 +4368,7 @@ double Chain::compute_logConditionalProb(unsigned int id_sample, unsigned int id
   // std::cout << "nPops = " << nPops <<"\n";
   
   // FIXME YC 5/9/2014
-  // It works for up to 2 population
+  // It works for up to 2 populations
   // Note: It might be better to have a migration rate matrix and a vector of population sizes
   // as members of class 'popTree'.
   Eigen::MatrixXd popSize(1,nPops);
@@ -6198,8 +6326,10 @@ void Chain::compute_partialJointPosteriorDensity_overSubLoci_ESS(popTree* poptre
 
 // YC 5/11/2016
 void Chain::compute_partialJointPosteriorDensity_overSubLoci(popTree* poptree, IM im, unsigned int crrProcID, unsigned int nProcs)
-{ 
+{
+  #ifdef DEBUG
   // std::cout <<"In compute_partialJointPosteriorDensity_overSubLoci()\n";
+#endif //DEBUG
   
   std::chrono::high_resolution_clock::time_point start_t, end_t;
   
@@ -6233,18 +6363,40 @@ void Chain::compute_partialJointPosteriorDensity_overSubLoci(popTree* poptree, I
 	  long double eachLogProb = 0.0;
 	  if(migRateMax !=0) // not a single population
 	    {
-	      eachLogProb = (long double) compute_logConditionalProb(sampleID,j,poptree,crrProcID);
-	      long double ntrees = (long double) numTrees.at(treeIDs.at(sampleID).at(j)); 
-	      logExpectationOfCoalProb.at(j) = eachLogProb-log(ntrees);
+	      if(Forest ==0||Forest==2)
+		{
+		  eachLogProb = (long double) compute_logConditionalProb(sampleID,j,poptree,crrProcID);
+		  long double ntrees = (long double) numTrees.at(treeIDs.at(sampleID).at(j)); 
+		  logExpectationOfCoalProb.at(j) = eachLogProb-log(ntrees);
+		}
+	      else if(Forest ==1|| Forest ==3) // sub-coalescent trees
+		{
+		  eachLogProb = (long double) compute_logConditionalProb_subtrees(sampleID,j,poptree,crrProcID);
+		  long double log_nsubtr =0;
+		  for(unsigned int id_st=0; id_st<sizeForest; id_st++)
+		    log_nsubtr += (long double) log(numTrees.at(subtreeIDs.at(sampleID).at(j).at(id_st))) ;
+		  logExpectationOfCoalProb.at(j) = eachLogProb-log_nsubtr;
+		}
 	    }
 	  else
 	    {
-	      eachLogProb = compute_logConditionalProb_zeroMig(sampleID,j,poptree,crrProcID);
-	      logExpectationOfCoalProb.at(j) = eachLogProb;
+	      if(Forest ==0||Forest==2)
+		{
+		  eachLogProb = compute_logConditionalProb_zeroMig(sampleID,j,poptree,crrProcID);
+		  logExpectationOfCoalProb.at(j) = eachLogProb;
+		}
+	      else if(Forest ==1|| Forest ==3) // sub-coalescent trees
+		{
+		  eachLogProb = compute_logConditionalProb_zeroMig_subtrees(sampleID,j,poptree,crrProcID);
+		  logExpectationOfCoalProb.at(j) = eachLogProb;
+		}
 	    }
 	}
       else if(TreesWithMaxP==0)
 	{
+	  #ifdef DEBUG
+	  // std::cout <<"TreesWithMaxP = "<< TreesWithMaxP<<"\n";
+#endif // DEBUG
 	  long double maxLogCondPr = -1*numeric_limits<long double>::infinity();
 	  std::vector<long double> logCondPr;
 	  logCondPr.resize(nSubSample);
@@ -6253,21 +6405,44 @@ void Chain::compute_partialJointPosteriorDensity_overSubLoci(popTree* poptree, I
 	      long double logPriorTree = 0.0;
 	      if(im.get_priorType()==1)
 		logPriorTree = (long double) logPrior_each.at(i).at(j);
-	      
-	      //std::cout << "crrProcID = " << crrProcID 
-	      //    << "logPriorTree = " << logPriorTree <<"\n";
+
+	      #ifdef DEBUG
+	      // std::cout << "crrProcID = " << crrProcID 
+	      //    << " logPriorTree = " << logPriorTree <<"\n";
+	      //   std::cout <<"migRateMax = " << migRateMax <<" Forest = "<< Forest <<"\n";
+#endif //DEBUG
 	      
 	      long double eachLogProb = 0;
 	      if(migRateMax !=0) // not a single population
-		{	      
-		  eachLogProb = (long double) compute_logConditionalProb(i,j,poptree,crrProcID);   
-		  long double ntrees = numTrees.at(treeIDs.at(i).at(j));  
-		  logCondPr.at(i) = eachLogProb-log(ntrees)-logPriorTree;
+		{
+		  if(Forest ==0||Forest==2)
+		    {	      
+		      eachLogProb = (long double) compute_logConditionalProb(i,j,poptree,crrProcID);   
+		      long double ntrees = numTrees.at(treeIDs.at(i).at(j));  
+		      logCondPr.at(i) = eachLogProb-log(ntrees)-logPriorTree;
+		    }
+		  else if(Forest ==1|| Forest ==3) // sub-coalescent trees
+		    {
+		      eachLogProb = (long double) compute_logConditionalProb_subtrees(i,j,poptree,crrProcID);
+		      long double log_nsubtr =0;
+		      for(unsigned int id_st=0; id_st<sizeForest; id_st++)
+			log_nsubtr += (long double) log(numTrees.at(subtreeIDs.at(i).at(j).at(id_st))) ;
+		      logCondPr.at(i) = eachLogProb-log_nsubtr-logPriorTree;
+		    }
 		}
 	      else
 		{
-		  eachLogProb = compute_logConditionalProb_zeroMig(i,j,poptree,crrProcID);
-		  logCondPr.at(i) = eachLogProb-logPriorTree;
+		  if(Forest ==0||Forest==2)
+		    {	      
+		      eachLogProb = compute_logConditionalProb_zeroMig(i,j,poptree,crrProcID);
+		      logCondPr.at(i) = eachLogProb-logPriorTree;
+		    }
+		  else if(Forest ==1|| Forest ==3) // sub-coalescent trees
+		    {     
+		      eachLogProb = compute_logConditionalProb_zeroMig_subtrees(i,j,poptree,crrProcID);
+		      logCondPr.at(i) = eachLogProb-logPriorTree;
+		    }
+		  
 		}
 
 	      // std::cout <<"eachLogProb = "<<eachLogProb <<"\n";

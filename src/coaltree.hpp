@@ -23,6 +23,7 @@ class node
 {
 private:
 
+  unsigned int isRoot; // 1 if the node is a root
   unsigned int label; // never used in MCMC. Used in L mode when a conditional distribution
   // of a coalescent tree given a population tree is computed.
   // labels start from 0.
@@ -63,7 +64,6 @@ public:
 	// virtual ~node();
 	//Matrix	lik; // 4 by (# unique sites) matrix
 	Eigen::MatrixXd lik; // 4 by (# unique sites) matrix
-	unsigned int isRoot; // 1 if the node is a root
 	unsigned int isTip; // 1 if the node is a tip
 	unsigned int isLikelihoodNULL; // 1 if 'lik' has not been computed or initialized; 0 if 'lik' is computed.
   unsigned int tipID; // starting from 1.
@@ -95,6 +95,7 @@ public:
   std::vector<double> get_waitingTime(){return waitingTime;}
   unsigned int get_isTip(){return isTip;}
   unsigned int get_isRoot(){return isRoot;}
+  void set_isRoot(unsigned int ir){isRoot=ir;}
   unsigned int get_tipID(){return tipID;}
   double get_numMutations(){return numMutations;}
   double get_numMutations_overLocus(){return numMutations_overLocus;}
@@ -189,6 +190,9 @@ public:
   unsigned int receive_size();
   void send_topoinfo();
 #endif
+
+  // subtree
+  std::vector<node*> getSubtree(unsigned int subSize);
 };
 
 
@@ -207,6 +211,8 @@ private:
 				   /// This popID is used in L mode only, when
 		           /// Pr(coalescent tree|data) is computed.
   unsigned int rank; // larger for older node.
+  /* If tip, rank =0.
+   */
   unsigned int size;
 
   // Computed the value and use in Chain::compute_summaryOfCoalTrees() 
@@ -215,7 +221,16 @@ private:
                           // If tips are from different populations, nodePopID =0
   double age;
   double popSize;
+  /* If tip, popSize = 0
+   */
   int nodeLabel;
+  /* If tip, nodeLabel = popID.
+   */
+
+  unsigned int totalNumSeq; // the total number of sequences or tips
+  /* If a full tree is considered, this number is same as the size of tree.
+     If a subtree is considered, this number is larger than the size of tree.
+   */
 
 
 public:

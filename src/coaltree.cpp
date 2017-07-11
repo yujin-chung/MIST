@@ -141,15 +141,31 @@ double node::compute_prior_indepLoci(locus lc, double popSizeMax, unsigned int p
  * Convert a string in newick form to a gene tree.
    From root
  */
-void node::convertFromNewick(string tree, unsigned int root)
+void node::convertFromNewick( string tree, unsigned int root)
 {
-  // std::cout << "\nreading tree: "<< tree <<"\n";
+  #ifdef DEBUG
+  //  std::cout <<"\n In node::convertFromNewick()\n";
+  //  std::cout << " reading tree: "<< tree << " root = " << root << "\n";
+#endif //DEBUG
 
   isRoot = root;
 
   unsigned int stringSize = tree.size();
+
+  std::string tempTree = tree;
+  tempTree += ",";
   
-  if( stringSize > 1)
+  unsigned int found_comma = tempTree.find(",");
+  //  unsigned int found_openParenthesis = tree.find_first_of("(");
+  
+  
+  #ifdef DEBUG
+  // std::cout <<"stringSize = "<<stringSize <<"\n";
+  // std::cout <<"found_comma = "<< found_comma <<"\n";
+  //  std::cout <<"found_openParenthesis = "<< found_openParenthesis <<"\n";
+#endif //DEBUG
+  
+  if( found_comma < stringSize )
     {   
       // Remove the parentheses
       std::string subTree = tree.substr(1,stringSize-2);
@@ -164,7 +180,7 @@ void node::convertFromNewick(string tree, unsigned int root)
 
       // Find the position to divide the string into two strings for firstChild and secondChild
       unsigned int found =0;      
-      unsigned int found_comma = subTree.find_first_of(",");
+      found_comma = subTree.find_first_of(",");
       unsigned int found_openParenthesis = subTree.find_first_of("(");
       unsigned int count_openParenthesis = 0;
       unsigned int loc_split =0;
@@ -185,8 +201,10 @@ void node::convertFromNewick(string tree, unsigned int root)
 	      child2 = child2.substr(0,cutoutBrLen);
 	      desc[0] = new node;
 	      desc[1] = new node;
-	      
-	      // std::cout << "child1 = " << child1 << " and child2 = " << child2 <<"\n";
+
+	      #ifdef DEBUG
+	      // std::cout << " child1 = " << child1 << " and child2 = " << child2 <<"\n";
+#endif //DEBUG
 
 	      desc[0]->convertFromNewick(child1, 0);
 	      desc[1]->convertFromNewick(child2, 0);
@@ -638,16 +656,29 @@ std::string nodeSimple::convert2Newick_originalTopo_recursion(std::vector<unsign
 /***
  * @param coaltimes list of coalescent times from a tree, in ascending order.
  * @param nLineages the ranks for internal nodes are larger than nLineages.
+                    If function "convert" is called to convert a subtree, 
+                    then "nLineages" should be the total number of sequences, 
+                    not the number of sub-sequences.
  */
 void nodeSimple::convert(node* tree, std::list<double> coaltimes, unsigned int nLineages)
 {
-  isRoot = tree->isRoot;
+  #ifdef DEBUG
+  // std::cout <<"In nodeSimple::convert()\n";
+  // tree->print_coaltree();
+#endif //DEBUG
+  
+  isRoot = tree->get_isRoot();
   isTip  = tree->isTip;
+  totalNumSeq = nLineages;
+
+  #ifdef DEBUG
+  // std::cout <<"isRoot = "<< isRoot <<" isTip = "<<isTip<<"\n";
+#endif //DEBUG
   
   unsigned int foundSameCoalTime = 0;
   std::list<double>::iterator iter = coaltimes.begin();
   unsigned int count =nLineages;
-  while(foundSameCoalTime == 0 && count < coaltimes.size()+nLineages)
+  while(isTip==0 && foundSameCoalTime == 0 && count < coaltimes.size()+nLineages)
     {
       if(tree->age == *iter)
 	{
@@ -658,6 +689,14 @@ void nodeSimple::convert(node* tree, std::list<double> coaltimes, unsigned int n
     }
   if(foundSameCoalTime == 1)
     rank = count;
+
+  
+  #ifdef DEBUG
+  /*
+  if(isTip ==0)
+    std::cout <<"rank = "<<rank <<"\n";
+  */
+#endif //DEBUG
   
   if(isRoot == 1)
     {
@@ -703,6 +742,9 @@ void nodeSimple::convert(node* tree, std::list<double> coaltimes, unsigned int n
       firstChild->par = this;
       secondChild->par = this;
     }
+  #ifdef DEBUG
+  // std::cout <<"Exiting nodeSimple::convert()\n";
+#endif //DEBUG
   return;
 }
 
@@ -1230,17 +1272,19 @@ void nodeSimple::computeSizes()
 unsigned int nodeSimple::sameTopo(node* tree)
 {
   unsigned int same = 1;
-  
-  //std::cout << "nodeSimple::sameTopo().\t size = " << size <<"\n";
-  //std::cout << "tree->size_tree() = "<<tree->size_tree() << "\n";
-  // std::cout << "Comparing..";
-  // tree->print_coaltree();
-  // print_topo();
-  // std::cout << "\n";
-  
+
+  #ifdef DEBUG
+  /*
+  std::cout << "nodeSimple::sameTopo().\t size = " << size <<"\n";
+  std::cout << "tree->size_tree() = "<<tree->size_tree() << "\n";
+   std::cout << "Comparing..";
+   tree->print_coaltree();
+   print_topo();
+   std::cout << "\n";
+  */
   //if(size <= 0)
   //		computeSizes();
-  
+#endif //DEBUG
   
   if(size != tree->size_tree())
     {
@@ -1279,6 +1323,9 @@ unsigned int nodeSimple::sameTopo(node* tree)
 	  //}
 	}
     }
+  #ifdef DEBUG
+  // std::cout <<"same = "<< same <<"\n";
+#endif //DEBUG
   return same;
 }
 
@@ -1437,8 +1484,6 @@ void node::deleteCoalTree()
 		desc[1]->deleteCoalTree();
 	}
 	delete this;
-	//delete desc[0];
-	//delete desc[1];
 }
 
 
@@ -1691,37 +1736,44 @@ node* node::findNode_fromRoot(int tipid)
 
 node* node::deepCopy_root()
 {
-	node* copy_node = new node;
-	copy_node->initialization();
-	//node tree;
-	//node* copy_node = &tree;
-	//node* copy_node;
+  
+  node* copy_node = new node;
+  copy_node->initialization();
+  
+  copy_node->isTip = isTip;
+  copy_node->set_isRoot(isRoot);
+  copy_node->tipID = tipID;
+  copy_node->age = age;
+  copy_node->isLikelihoodNULL = isLikelihoodNULL;
+  copy_node->totalCoalRate = totalCoalRate;
+  copy_node->label = label;
+  copy_node->popID = popID;
+  copy_node->assign_siblingOrder(siblingOrder);
+  if(!isLikelihoodNULL)
+    {
+      copy_node->lik.resize(4,lik.cols());
+      copy_node->lik.setZero();
+      copy_node->lik = lik;
+      // copy_node->lik.replace(lik.get_valarray(),4,lik.get_ncol());
+      // copy_node->lik=lik;
+    }
+  if(!isTip)
+    {
+      copy_node->desc[0] = desc[0]->deepCopy_root();
+      copy_node->desc[1] = desc[1]->deepCopy_root();
+      copy_node->desc[0]->par = copy_node;
+      copy_node->desc[1]->par = copy_node;
+    }
 
-	copy_node->isTip = isTip;
-	copy_node->isRoot = isRoot;
-	copy_node->tipID = tipID;
-	copy_node->age = age;
-	copy_node->isLikelihoodNULL = isLikelihoodNULL;
-	copy_node->totalCoalRate = totalCoalRate;
-	copy_node->label = label;
-	copy_node->popID = popID;
-	copy_node->assign_siblingOrder(siblingOrder);
-	if(!isLikelihoodNULL)
-	{
-		copy_node->lik.resize(4,lik.cols());
-		copy_node->lik.setZero();
-		copy_node->lik = lik;
-		// copy_node->lik.replace(lik.get_valarray(),4,lik.get_ncol());
-		// copy_node->lik=lik;
-	}
-	if(!isTip)
-	{
-		copy_node->desc[0] = desc[0]->deepCopy_root();
-		copy_node->desc[1] = desc[1]->deepCopy_root();
-		copy_node->desc[0]->par = copy_node;
-		copy_node->desc[1]->par = copy_node;
-	}
-	return copy_node;
+  /*
+  std::cout <<"\t In deepCopy_root()\n";
+  std::cout <<"\t the given tree ";
+  print_coaltree();
+  std::cout <<"\t the copy tree ";
+  copy_node->print_coaltree();
+  */
+  
+  return copy_node;
 }
 
 
@@ -2040,9 +2092,9 @@ unsigned int node::size_tree()
 {
 	unsigned int ntips = 0;
 	if(isTip == 1)
-		ntips++;
+	  ntips++;
 	else if(isTip == 0)
-		ntips += desc[0]->size_tree()+desc[1]->size_tree();
+	  ntips += desc[0]->size_tree()+desc[1]->size_tree();
 
 	return ntips;
 }
@@ -2051,7 +2103,7 @@ unsigned int node::size_tree()
 /**
  * Called by print_coaltree() for printing a tree in the Newick format.
  */
-void node::print_node()
+void node::print_node( )
 {
 	if(isTip == 1)
 	{
@@ -2130,7 +2182,7 @@ void nodeSimple::fileprint_topo(std::ofstream& fp)
 /**
  * Print out a coalescent tree in the Newick format
  */
-void node::print_coaltree()
+void node::print_coaltree( )
 {
 	if(isTip == 1)
 		std::cout << "(" << tipID << ");\n";
@@ -2142,6 +2194,11 @@ void node::print_coaltree()
 		desc[1]->print_node();
 		std::cout << ");\n";
 	}
+	else
+	  {
+	    std::cout <<" Error in node::print_coaltree()\n";
+	  }
+	 
 }
 /**
  * Print out a coalescent tree in the Newick format

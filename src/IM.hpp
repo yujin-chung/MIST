@@ -26,6 +26,8 @@
 
 #include <fstream>
 
+// #define DEBUG
+
 using namespace std;
 
 /***
@@ -124,6 +126,16 @@ private:
   // 3 if L mode is running for the given population tree only.
   // 4 for L mode for grid search. Returns posterior means.
   // 5 for MLmodes=2 but parallized over samples rather than loci
+
+  // YC 5/4/2017
+  unsigned int Forest;
+  // 0 if a full coalescent tree and population tree are considered (default)
+  // 1 if the forest of coalescent trees are condisered
+  // 2 if the forest of population trees are considered
+  // 3 if the forests of coalescent trees and population trees are considered.
+  unsigned int sizeCoalsubtree; // the size of subtrees of coalescent trees (default=0)
+  unsigned int sizePopsubtree;  // the size of subtrees of population trees (default=0)
+  
 
   unsigned int lociInParallel; // for M mode only
   // 1 if loci are in parallel
@@ -229,6 +241,9 @@ public:
   unsigned int get_nParaVectors(){return nParaVectors;}
   unsigned int get_checkpoint(){return checkpoint;}
   unsigned int get_howOften_checkpoint(){return howOften_checkpoint;}
+   unsigned int get_Forest(){return Forest;}
+  unsigned int get_sizeCoalsubtree(){return sizeCoalsubtree;} 
+  unsigned int get_sizePopsubtree(){return sizePopsubtree;}
 };
 
 #endif /* IM_HPP_ */

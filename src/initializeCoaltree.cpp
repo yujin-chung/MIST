@@ -294,7 +294,7 @@ node* get_UPGMA (locus lc)
       //node tr;
       //new_node = &tr;
       new_node->isTip = 1; // The initial nodes to join are tips.
-      new_node->isRoot = 0;
+      new_node->set_isRoot(0);
       new_node->age = 0.0;
       new_node->tipID = i+1;
       new_node->isLikelihoodNULL =1;
@@ -343,7 +343,7 @@ node* get_UPGMA (locus lc)
       //node tmp;
       //new_node = &tmp;
       new_node->isTip = 0;
-      new_node->isRoot = 0;
+      new_node->set_isRoot(0);
       new_node->isLikelihoodNULL = 1;
       new_node->assign_siblingOrder(2);
       list_nodes[nodeIndex[0]]->assign_siblingOrder(0);
@@ -383,7 +383,7 @@ node* get_UPGMA (locus lc)
       
     }
   
-  list_nodes[0]->isRoot = 1;
+  list_nodes[0]->set_isRoot(1);
   return list_nodes[0];
 }
 
@@ -615,7 +615,7 @@ node* get_UPGMA_IS (locus lc)
       //node tr;
       //new_node = &tr;
       new_node->isTip = 1; // The initial nodes to join are tips.
-      new_node->isRoot = 0;
+      new_node->set_isRoot(0);
       new_node->age = 0.0;
       new_node->tipID = i+1;
       new_node->isLikelihoodNULL =1;
@@ -721,7 +721,7 @@ node* get_UPGMA_IS (locus lc)
       //node tmp;
       //new_node = &tmp;
       new_node->isTip = 0;
-      new_node->isRoot = 0;
+      new_node->set_isRoot(0);
       new_node->isLikelihoodNULL = 1;
       new_node->assign_siblingOrder(2);
       list_nodes[nodeIndex[0]]->assign_siblingOrder(0);
@@ -774,7 +774,7 @@ node* get_UPGMA_IS (locus lc)
       
     }
   
-  list_nodes[0]->isRoot = 1;
+  list_nodes[0]->set_isRoot(1);
   return list_nodes[0];
 }
 
@@ -977,7 +977,7 @@ node* initial_coalTree_IS_fromIMa2(locus lc)
       //node tr;
       //new_node = &tr;
       new_node->isTip = 1; // The initial nodes to join are tips.
-      new_node->isRoot = 0;
+      new_node->set_isRoot(0);
       new_node->age = 0.0;
       new_node->tipID = i+1;
       new_node->isLikelihoodNULL =1;
@@ -1149,7 +1149,7 @@ node* initial_coalTree_IS_fromIMa2(locus lc)
       new_node = new node;
       new_node->initialization();
       new_node->isTip = 0;
-      new_node->isRoot = 0;
+      new_node->set_isRoot(0);
       new_node->isLikelihoodNULL = 1;
       new_node->assign_siblingOrder(2);
       list_nodes[coal.at(0)]->assign_siblingOrder(0);
@@ -1194,7 +1194,7 @@ node* initial_coalTree_IS_fromIMa2(locus lc)
       // curid[coal[0]] = newedge;
       curgenes--;
     }
-  list_nodes[0]->isRoot = 1;
+  list_nodes[0]->set_isRoot(1);
 
   
   list_nodes[0]->assignPopulations2Tips(lc);

@@ -49,7 +49,7 @@ void Chain::fileprint_listTrees(std::ofstream& fp)
 }
 
 
-void Chain::read_LmodeInputFile(IM im)
+void Chain::read_LmodeInputFile( IM im)
 {
   if(im.get_newickTreeFormat() ==1)
     {     
@@ -84,15 +84,45 @@ void Chain::read_LmodeInputFile(IM im)
 
 void Chain::find_print_theMaxHeightsTrees()
 {
+  #ifdef DEBUG
+  // std::cout <<"nSubSample = "<< nSubSample << " numSubLoci = "<< numSubLoci <<" sizeForest = "<<sizeForest <<"\n";
+#endif //DEBUG
+  
   double max_age=0;
+  double max_test =0;
   for(unsigned int i=0; i<nSubSample; i++)
     for(unsigned int j=0; j<numSubLoci; j++)
       {
-	double age = coalTimes.at(i).at(j).front();
-	// std::cout <<"cpuID =" << cpuID  << " age = " << age <<"\n";
-	if(max_age < age)
+	if(Forest ==0||Forest ==2)
 	  {
-	    max_age = age;
+	    double age = coalTimes.at(i).at(j).front();
+	    // std::cout <<"cpuID =" << cpuID  << " age = " << age <<"\n";
+	    if(max_age < age)
+	      {
+		max_age = age;
+	      }
+	  }
+	else if(Forest==1||Forest==3)
+	  {
+	    for(unsigned int k=0; k< sizeForest; k++)
+	      {
+		double age = subcoalTimes.at(i).at(j).at(k).front();
+		if(max_age < age)	      
+		  max_age = age;
+		/*
+		double age_test = *max_element(subcoalTimes.at(i).at(j).at(k).begin(), subcoalTimes.at(i).at(j).at(k).end());
+		if(max_test < age_test)
+		  max_test = age_test;
+		*/
+		#ifdef DEBUG
+		/*
+		std::cout <<"cpuID = "<<cpuID;
+		std::cout << " i="<<i <<" j="<<j <<" k="<<k<< " height(age) = "<<Coalsubtrees.at(i).at(j).at(k)->get_age()<<"\n";
+		std::cout <<"age = " <<age <<" age_test = "<< age_test <<"\n";
+		*/
+#endif //DEBUG
+	      }
+	  }
 	    /*
 	    std::cout <<"cpuID = " << cpuID <<" max_age=" 
 		      << max_age <<" age = " << age 
@@ -100,7 +130,7 @@ void Chain::find_print_theMaxHeightsTrees()
 		      <<" " ;
 	    trees_atPrev.at(j)->print_coaltree();
 	    */	    
-	  }
+	  
       }
 
   double max_age_global = 0;
@@ -110,6 +140,7 @@ void Chain::find_print_theMaxHeightsTrees()
   if(cpuID ==0)
     {
       std::cout <<"\nThe maximum of tree heigths is " << max_age_global <<". If the upper bound of the splitting time is higher than this maximum, please use an upper bound smaller than the maximum height.\n\n";
+      //  std::cout <<"\nThe maximum of tree heigths is " << max_test <<". If the upper bound of the splitting time is higher than this maximum, please use an upper bound smaller than the maximum height.\n\n";
     }
 
   return;
@@ -117,29 +148,41 @@ void Chain::find_print_theMaxHeightsTrees()
 
 
 
-void Chain::read_newickTrees_partial(IM im)
+void Chain::read_newickTrees_partial( IM im)
 {
   char* inputFile = im.get_newickTreeFileName();
   char* SeqPopFile = im.get_SeqPopFileName();
   if(cpuID ==0)
     std::cout << "\n Reading "<< inputFile <<"\n";
 
+  #ifdef DEBUG
   /*
   std::cout <<"numSubLoci = "<< numSubLoci 
 	    <<" nSubSample = "<< nSubSample <<"\n";
   */
+#endif //DEBUG
 
   trees_atPrev.resize(numSubLoci); 
-  treeIDs.resize(nSubSample);
-  coalTimes.resize(nSubSample);
-  tipIDs.resize(nSubSample);
   logPrior_trees.resize(nSubSample);
   logPriorTrees_atPrev = 0.0;
+  if(Forest == 0||Forest ==2)
+    {
+      treeIDs.resize(nSubSample);
+      coalTimes.resize(nSubSample);
+      tipIDs.resize(nSubSample);
+    }
+  else if(Forest == 1||Forest ==3)
+    {
+      Coalsubtrees.resize(nSubSample);
+      Coalsubtrees.at(0).resize(numSubLoci);
+      subtreeIDs.resize(nSubSample);
+      subcoalTimes.resize(nSubSample);
+      subtipIDs.resize(nSubSample);
+    }
 
   ifstream inFile; 
 
   // seq-population names
-  std::vector<unsigned int> SeqPop;
   unsigned int word_counter = 0;
   unsigned int label = 0;
   inFile.open(SeqPopFile);
@@ -149,13 +192,15 @@ void Chain::read_newickTrees_partial(IM im)
   }
   inFile.close();
 
+  #ifdef DEBUG
   /*
   std::cout <<"word_counter = " << word_counter <<"\n";
   for(unsigned int i=0; i<word_counter; i++)
     std::cout << SeqPop.at(i) <<" ";
   std::cout <<"\n";
   */
-
+#endif //DEBUG
+  
   string word;
   unsigned int iter = 0;
   unsigned int locusID = 0;
@@ -172,11 +217,16 @@ void Chain::read_newickTrees_partial(IM im)
 
       if(locusID >=locusID_start && locusID <= locusID_end)
 	{
-	  // std::cout << "locusID = " << locusID  << " tree_string = " << tree_string <<"\n";
+	  #ifdef DEBUG
+	  /*
+	  std::cout << "n_loci = " << n_loci 
+		    << " locusID = " << locusID <<"\n";
+	    std::cout << " tree_string = " << tree_string <<"\n";
+	    */
+#endif //DEBUG
 	  
 	  node* tree = new node;
 	  tree->convertFromNewick(tree_string,1);
-	  // tree->assignPopulations2Tips(im.getLoci()[0]);
 	  tree->assignPopulations2Tips(SeqPop);
 	  trees_atPrev.at(locusID-locusID_start) = tree;
 	  /*
@@ -185,21 +235,53 @@ void Chain::read_newickTrees_partial(IM im)
 	      collectAllUpdates_Lmode(0);
 	    }	        
 	  */
+
+	  if(Forest == 1||Forest ==3)
+	    {
+	      if(sizeCoalsubtree == 0)
+		{
+		  std::cout << "\n**** Error in Chain::read_newickTrees_partial( IM im) ***\n";
+		  std::cout <<" sizeCoalsubtree is zero.\n";
+		}
+	      else
+		{
+		  if(locusID == locusID_start)
+		    numTotalSeq = trees_atPrev.at(0)->size_tree();
+		  getSubtree(sizeCoalsubtree,trees_atPrev.at(locusID-locusID_start), 0, locusID-locusID_start);
+		}
+	    }	  
+	  
 	}
       if(locusID==n_loci-1)
 	locusID++;
     }
-     
+
   inFile.close();
+  #ifdef DEBUG
+  // std::cout <<"Done with reading the file.\n";
+#endif //DEBUG
   
-  if(cpuID == 0)
-    collectAllUpdates_Lmode(0);
+  if(Forest ==0 || Forest == 2)
+    {
+      if(cpuID == 0)
+	collectAllUpdates_Lmode(0);
+      MPI::COMM_WORLD.Barrier();
+      collectAllUpdates_bwProcs_Lmode();
+    }
+  else if(Forest == 1||Forest ==3) // forest of subtrees
+    {
+      if(cpuID == 0)
+	collectAllUpdates_Lmode_subtrees(0);
+      MPI::COMM_WORLD.Barrier();
+      collectAllUpdates_bwProcs_Lmode_subtrees();
+    }
+  else
+    std::cout <<"\n*** Error *** Forest is "<<Forest <<".\n";
+
   
-  MPI::COMM_WORLD.Barrier();
-
-  collectAllUpdates_bwProcs_Lmode();
 
 
+  
   // REMOVE
   /*
   if(cpuID==0)
@@ -212,7 +294,7 @@ void Chain::read_newickTrees_partial(IM im)
 	}
     }
   */
-
+  
   return;
 }
 
@@ -884,7 +966,7 @@ void Chain::read_tipIDs_partial(IM im)
 void Chain::read_listTrees()
 {
   ifstream file;
-  file.open ("MCMCsample_listTopo.txt");
+  file.open ("ListTopo.txt");
   string word;
 
   file >> word;
@@ -1506,16 +1588,30 @@ void Chain::saveListTopo2File()
   // std::cout << "list_trees.size() = " << list_trees.size() <<"\n";
 
   ofstream treefile;
-  treefile.open ("MCMCsample_listTopo.txt");
+  treefile.open ("ListTopo.txt");
   treefile << "treeID\ttopo\n";
   string tree;
-  for(unsigned int i=0; i<list_trees.size(); i++)
+  if(Forest ==0||Forest ==2)
     {
-      treefile << i <<"\t";
-      tree = list_trees.at(i)->convert2Newick_topo();
-      treefile << tree;
-      treefile << "\n";
-      // trees.at(i).at(j)->saveTree(treefile);
+      for(unsigned int i=0; i<list_trees.size(); i++)
+	{
+	  treefile << i <<"\t";
+	  tree = list_trees.at(i)->convert2Newick_topo();
+	  treefile << tree;
+	  treefile << "\n";
+	  // trees.at(i).at(j)->saveTree(treefile);
+	}
+    }
+  else if(Forest ==1 ||Forest ==3)
+    {
+      for(unsigned int i=0; i<list_trees.size(); i++)
+	{
+	  treefile << i <<"\t";
+	  tree = list_trees.at(i)->convert2Newick_topo();
+	  treefile << tree;
+	  treefile << "\n";
+	  // trees.at(i).at(j)->saveTree(treefile);
+	}
     }
   treefile.close();
 }
@@ -2409,11 +2505,11 @@ void Chain::UpdateTrees_newProposal(unsigned int id_crrIter, vector<locus> lc, u
 }
 
 
-void Chain::collectAllUpdates_Lmode(unsigned int savingID)
+void Chain::collectAllUpdates_Lmode( unsigned int savingID)
 {
   treeIDs.at(savingID).resize(numSubLoci);
   coalTimes.at(savingID).resize(numSubLoci);
-  tipIDs.at(savingID).resize(numSubLoci);
+  // tipIDs.at(savingID).resize(numSubLoci);
 
   if(lociInParallel ==0) 
     logPrior_trees.at(savingID) = logPriorTrees_atPrev; // which is 0.

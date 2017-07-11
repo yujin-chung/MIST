@@ -125,9 +125,11 @@ private :
 
 
   // ---- members used in the L mode only ----- //
+  unsigned int numTotalSeq; // the number of total seuqneces 
+  std::vector<unsigned int> SeqPop;
   unsigned int nTrees; // the number of trees per locus to use in L mode
   // this number should be smaller or equal to n_MCMCgen
-  unsigned int nSubSample;
+  unsigned int nSubSample; // MCMC sample
   unsigned int sampleID_start;
   unsigned int sampleID_end;  
   unsigned int TreesWithMaxP;
@@ -168,7 +170,7 @@ private :
   std::vector<std::vector<Eigen::MatrixXd> > stateSpaces; // shared across processes
   std::vector<std::vector<std::vector<std::vector<unsigned int> > > > possiblePaths; // shared across processes
   std::vector<std::vector<std::vector<std::vector<unsigned int> > > >nPossibleCoalEvents; // for each unique tree topology, for each coalescent event, for each population where coalescent events happen, 
-  std::vector<unsigned int> numTrees;
+  std::vector<unsigned int> numTrees; // the size of an equivalence class.
   std::vector<std::vector<unsigned int> > numSameCoalEvents_inAncPop; // shared across processes
   
   std::vector<std::vector<std::vector<Eigen::MatrixXd> > > coeff4TransitionRateMat;
@@ -198,6 +200,27 @@ private :
   double upperBoundOfTMRCA;
   unsigned int nSamples_belowTheUpperBoundOfTMRCA;
   unsigned int nSamples_twoLargeImporatanceRatio;
+
+  // YC 5/4/2017
+  unsigned int Forest;
+  // 0 if a full coalescent tree and population tree are considered (default)
+  // 1 if the forest of coalescent trees are condisered
+  // 2 if the forest of population trees are considered
+  // 3 if the forests of coalescent trees and population trees are considered.
+  unsigned int sizeCoalsubtree; // the size of subtrees of coalescent trees (default=0)
+  unsigned int sizePopsubtree;  // the size of subtrees of population trees (default=0)
+  unsigned int sizeForest; // the number of subtrees per locus per sample.
+  
+  // subtrees in Step 2 - YC 3/8/2017
+  std::vector<std::vector<std::vector< node*> > > Coalsubtrees;
+  // per-sample, per-locus subtrees
+  // for example, if the MCMC sample size is 1, then subTrees.at(0) contains all subtrees of loci.
+  // std::vector<nodeSimple*> listSubtrees; // the list of topo for subtree-version is the same as list_trees
+  std::vector<std::vector<std::vector<unsigned int> > > subtreeIDs; // shared across processes
+  // per-sample, per-locus
+  std::vector<std::vector<std::vector<std::list<double> > > > subcoalTimes;  // shared across processes
+  std::vector<std::vector<std::vector<std::vector<unsigned int> > > > subtipIDs;
+  
   
 public:
   ~Chain() {};
@@ -246,6 +269,8 @@ public:
   std::vector<long double> get_logExpectationOfCoalProbSquared(){return logExpectationOfCoalProbSquared;}
   unsigned int get_multiLocusSpecific_mutationRate(){return multiLocusSpecific_mutationRate;}
   std::vector<long double> get_partialLogJointCoalProb(){return partialLogJointCoalProb;}
+
+  
 
   void resizeLogLikelihood(unsigned int iterID){logLikelihood.at(iterID).resize(n_loci); return;}
   void resizeTreeIDs(unsigned int iterID){treeIDs.at(iterID).resize(n_loci); return;}
@@ -368,7 +393,9 @@ void update_mutationScaler_Kappa_usePriorsOnly(unsigned int id_crrIter, std::vec
 
   void collectAllUpdates(unsigned int savingID, unsigned int Lmode); // 1 process and 1 chain
   void collectAllUpdates_Lmode(unsigned int savingID);
+  void collectAllUpdates_Lmode_subtrees( unsigned int savingID);
   void collectAllUpdates_bwProcs_Lmode();
+  void collectAllUpdates_bwProcs_Lmode_subtrees();
 
 
   void AddTrees(std::vector<node*> trees);
@@ -379,6 +406,8 @@ void update_mutationScaler_Kappa_usePriorsOnly(unsigned int id_crrIter, std::vec
   void compute_rankTemp();
   void compute_totalnum_coalEvents(std::vector<locus> loci);
   void compute_coalTimes_tipIDs(unsigned int iter, unsigned int id_locus, node* tree);
+  void compute_coalTimes_tipIDs_subtrees(unsigned int iter, unsigned int id_locus, unsigned int id_subtr, node* tree);
+
   double compute_logPriorTrees(node* newTrees, unsigned int id_locus);
   double compute_logPrior_usingTrees_atPrev();
   double compute_totalLogLik();
@@ -428,8 +457,10 @@ void update_mutationScaler_Kappa_usePriorsOnly(unsigned int id_crrIter, std::vec
   void share_eigenValuesVectors(unsigned int crrProc_ID);
   double compute_conditionalProb(unsigned int id_sample, unsigned int id_locus, popTree* poptree); 
   double compute_conditionalProb_MPI(unsigned int id_sample, unsigned int id_locus, popTree* poptree, unsigned int crrProcID); 
-  double compute_logConditionalProb(unsigned int id_sample, unsigned int id_locus, popTree* poptree, unsigned int crrProcID); // currently used 
-  long double compute_logConditionalProb_zeroMig(unsigned int id_sample, unsigned int id_locus, popTree* poptree, unsigned int crrProcID); // currently used 
+  double compute_logConditionalProb(unsigned int id_sample, unsigned int id_locus, popTree* poptree, unsigned int crrProcID); // currently used
+  double compute_logConditionalProb_subtrees(unsigned int id_sample, unsigned int id_locus, popTree* poptree, unsigned int crrProcID);
+  long double compute_logConditionalProb_zeroMig(unsigned int id_sample, unsigned int id_locus, popTree* poptree, unsigned int crrProcID); // currently used
+  long double compute_logConditionalProb_zeroMig_subtrees(unsigned int id_sample, unsigned int id_locus, popTree* poptree, unsigned int crrProcID);
   double compute_logConditionalProb_old(unsigned int id_sample, unsigned int id_locus, popTree* poptree, unsigned int crrProcID); 
   double compute_jointPosteriorDensity(popTree* poptree,IM im);
   double compute_jointPosteriorDensity_MPI(popTree* poptree, IM im, unsigned int crrProcID);
@@ -443,6 +474,9 @@ void update_mutationScaler_Kappa_usePriorsOnly(unsigned int id_crrIter, std::vec
   void compute_partialJointPosteriorDensity_overSubSample_selfNormalized(popTree* poptree, IM im, unsigned int crrProcID, unsigned int nProcs);
   void find_print_theMaxHeightsTrees();
 
+  // subtrees 
+  void getSubtree(unsigned int subSize, node* tree, unsigned int sampleID, unsigned int subLocusID);
+  
 	// old version
 	unsigned int compute_size_stateSpaces(unsigned int freq, unsigned int nPops);
 	std::string find_nextCoalLineage(unsigned int id_samples,unsigned int  id_period);

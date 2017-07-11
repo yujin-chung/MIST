@@ -32,7 +32,7 @@ void IM::initialize_MCMCsetting(int nChains, int nTreeSample, int samplingFromPr
 
 
  // If the returning value is 0, then stop the software. If 1, execute MCMC.
-unsigned int IM::initialization(int argc, char *argv[], unsigned int processID)
+unsigned int IM::initialization( int argc, char *argv[], unsigned int processID)
 {   
   // Defaults
   splittingTimeMax = pow(10,6);
@@ -58,6 +58,9 @@ unsigned int IM::initialization(int argc, char *argv[], unsigned int processID)
   sameMigrationRates = 0;
   checkpoint = 0;
   ancPop=1;
+  Forest = 0;
+  sizeCoalsubtree = 0;
+  sizePopsubtree = 0;
 
   locus locus_tmp;
   locus_tmp.initialize_multiLocusSpecific_mutationRate(multiLocusSpecific_mutationRate);
@@ -96,6 +99,22 @@ unsigned int IM::initialization(int argc, char *argv[], unsigned int processID)
 	    if(MLmodes>=2)
 	      multiLocusSpecific_mutationRate = 0;
 	    break;
+	  case 'F': // pseudo-probability based on subtrees -- YC 5/4/2017
+	    Forest =  atoi(argv[counter+1]);
+	    if(Forest >0)
+	      {
+		counter++;
+		if(Forest==1)
+		  sizeCoalsubtree = atoi(argv[counter+1]);
+		else if(Forest ==2)
+		  sizePopsubtree = atoi(argv[counter+1]);
+		else if(Forest == 3)
+		  {
+		    sizeCoalsubtree = atoi(argv[counter+1]);
+		    counter++;
+		    sizePopsubtree = atoi(argv[counter+1]);
+		  }		  
+	      }
 	  case 'B':
 	    n_Burning = atoi(argv[counter+1]);
 	    break;

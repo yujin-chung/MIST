@@ -136,6 +136,12 @@ void popTree::replacePara(Eigen::MatrixXd listPara)
 
 void popTree::initialize_popTree_recursion(IM im, std::string newickTree, Eigen::Vector3d paraMax)
 {
+  #ifdef DEBUG
+  /*
+  std::cout <<"\n popTree::initialize_popTree_recursion()\n";
+  std::cout <<"newickTree = "<< newickTree <<"\n";
+  */
+#endif //DEBUG
   double para = 0.0;
   if(newickTree.size()>0 && newickTree.compare(0,1,";")!=0)
     {
@@ -217,10 +223,16 @@ void popTree::initialize_popTree_recursion(IM im, std::string newickTree, Eigen:
  */
 void popTree::initialize_popTree(IM im, unsigned int processID)
 {
+  #ifdef DEBUG
+  // std::cout <<"\n popTree::initialize_popTree()\n";
+#endif //DEBUG
+  
   std::string newickTree = im.get_poptree_string();
   unsigned int ancPop = im.get_ancPop();
   Eigen::Vector3d paraMax = im.get_paraMax();
-
+  #ifdef DEBUG
+  // std::cout <<"newickTree = "<< newickTree <<"\n";
+#endif // DEBUG
   if(processID == 0)
     {
 	std::cout << "Initialization of population tree....\n";
@@ -231,7 +243,13 @@ void popTree::initialize_popTree(IM im, unsigned int processID)
     {
       
       newickTree.erase(0,1);
+#ifdef DEBUG
+      // std::cout <<"newickTree = "<< newickTree <<"\n";
+#endif // DEBUG
       newickTree.erase(newickTree.size()-1,1);
+#ifdef DEBUG
+      // std::cout <<"newickTree = "<< newickTree <<"\n";
+#endif // DEBUG
 
       assign_isRoot_isTip(1,0);
       char name = newickTree.at(newickTree.size()-1);
@@ -243,6 +261,10 @@ void popTree::initialize_popTree(IM im, unsigned int processID)
       int n = name;
      
       popID = (unsigned) n;
+      #ifdef DEBUG
+      // std::cout <<"popID = "<< popID<<"\n";
+#endif //DEBUG
+      
       //-- splitting time --//
       if(im.get_ancPop() == 1) // isolation model
 	{
@@ -295,6 +317,9 @@ void popTree::initialize_popTree(IM im, unsigned int processID)
       std::cout << "End of population tree initialization.\n\n";
     }
   
+  #ifdef DEBUG
+  // std::cout <<"\n Exiting popTree::initialize_popTree()\n";
+#endif //DEBUG
   return;
 }
 

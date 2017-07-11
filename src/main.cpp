@@ -481,7 +481,7 @@ int main (int argc, char *argv[])
   
   
   
-      // L mode - Approximation of the posterior density of parameters
+      // Step 2 - Approximation of the posterior density of parameters
     
       if(MLmodes >= 2 ) 
 	{	  
@@ -524,8 +524,16 @@ int main (int argc, char *argv[])
 	    {
 	      MaxPosterior MAPestimate;
 	      
+
+	      #ifdef DEBUG
+	      // std::cout <<"Starting prepare_Lmode().\n";
+#endif //DEBUG
 	      coldCh.prepare_Lmode(poptree, im);
-	      
+
+
+	      #ifdef DEBUG
+	      // std::cout <<"prepare_Lmode() is done.\n";
+#endif //DEBUG
 		// std::cout <<"Done with reading input files.\n";
 
 	      if(MLmodes == 3)
