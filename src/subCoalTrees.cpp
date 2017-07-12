@@ -656,7 +656,7 @@ double Chain::compute_logConditionalProb_subtrees(unsigned int id_sample, unsign
       eventT.sort();
       
       #ifdef DEBUG
-      //std::cout <<"id_st = "<< id_st << " trID = " << trID <<"\n";
+      // std::cout <<"id_st = "<< id_st << " trID = " << trID <<"\n";
 #endif //DEBUG
       // std::cout <<"nGeneCopies = " << coalTimes.at(id_sample).at(id_locus).size()+1 <<"\n";
       
@@ -670,7 +670,10 @@ double Chain::compute_logConditionalProb_subtrees(unsigned int id_sample, unsign
       while(count_events <nGeneCopies-1 && iter!=eventT.end())
 	{
 	  #ifdef DEBUG
-	  // std::cout <<"count_events = "<< count_events << " *iter = " << *iter << "\n";
+	  /*
+	  if(trID==1)
+	    std::cout <<"count_events = "<< count_events << " *iter = " << *iter << "\n";
+	  */
 #endif //DEBUG
 	  if(*iter <=splittingTime)
 	    {
@@ -697,6 +700,13 @@ double Chain::compute_logConditionalProb_subtrees(unsigned int id_sample, unsign
 	      
 	      Eigen::MatrixXcd V_inv = subMatV.at(trID).at(count_events).at(1);
 	      Eigen::MatrixXcd probMat_each;
+
+	      #ifdef DEBUG
+	      /*
+	      if(trID==1)
+		std::cout <<"V = " <<V <<"\nV_inv = "<<V_inv <<"\n";
+	      */
+#endif // DEBUG
 	      
 	      if(count_events==0) // the first coalescent event
 		{
@@ -738,10 +748,13 @@ double Chain::compute_logConditionalProb_subtrees(unsigned int id_sample, unsign
 		}
 	      
 		  #ifdef DEBUG
-	      //  std::cout <<" waitingTime= " << waitingTime << " and probMat=" << probMat <<"\n";
+	      /*
+	      if(trID==1)
+		{
+	        std::cout <<" waitingTime= " << waitingTime << " and probMat=" << probMat <<"\n";
+		}
+	      */
 #endif //DEBUG
-	      //std::cout << "Case 3: *iter = " << *iter << " splittingtime = " << splittingTime
-	      //	    << " waitingTime= " << waitingTime << " and probMat=" << probMat <<"\n";
 	      
 	      count_events++; // counting the number of events that happened before the splitting time.
 	      
@@ -772,8 +785,11 @@ double Chain::compute_logConditionalProb_subtrees(unsigned int id_sample, unsign
 
 	      #ifdef DEBUG
 	      /*
-	      std::cout << "Case 2\n";
-	  std::cout <<"count_events = "<< count_events << " *iter = " << *iter << "\n";
+	      if(trID==1)
+		{
+		  std::cout << "Case 2\n";
+		  std::cout <<"count_events = "<< count_events << " *iter = " << *iter << "\n";
+		}
 	      */
 #endif //DEBUG
 	      
@@ -878,7 +894,10 @@ double Chain::compute_logConditionalProb_subtrees(unsigned int id_sample, unsign
 	  else if(splittingTime==0 || *iter > splittingTime && ancestralPop == 1)
 	    {
 	      #ifdef DEBUG
-	      // std::cout <<"--- Case 1: coalescents in the ancestral population. ---\n";
+	      /*
+	      if(trID==1)
+		std::cout <<"--- Case 1: coalescents in the ancestral population. ---\n";
+	      */
 #endif //DEBUG
 	      //--- Case 1: coalescents in the ancestral population. ---//
 	      //  Some or all coalescent events happened in the ancestral population.
@@ -888,6 +907,12 @@ double Chain::compute_logConditionalProb_subtrees(unsigned int id_sample, unsign
 	      
 	      double popSize = poptree->get_popSize();
 	      unsigned int nLineages = nGeneCopies - count_events; // the number of remaining lineages
+	      #ifdef DEBUG
+	      /*
+	      if(trID==1)
+		std::cout <<"nGeneCopies = "<<nGeneCopies <<" count_events = "<< count_events <<" nLineages = "<<nLineages <<"\n";
+	      */
+#endif // DEBUG
 	      double expterm = 0.0;
 	      for(unsigned int l=nLineages; l>=2; l--, ++iter)
 		{
