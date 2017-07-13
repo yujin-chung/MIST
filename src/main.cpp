@@ -607,7 +607,7 @@ int main (int argc, char *argv[])
 		      std::cout << "The function was called " << MAPestimate.get_totalNum_condiProbFunctionCalls() << " times\n";
 		      */
 		    }
-		}// END of if(MLmodes == 3)
+		}// END of if(MLmodes == 2)
 	  
 	      if(MLmodes==5)
 		{
@@ -644,7 +644,17 @@ int main (int argc, char *argv[])
 		    paraVector(0,5) = im.get_truePara()(0,(im.get_truePara()).cols()-1);
 		  else // no ancestral population
 		    paraVector(0,5) =im.get_splittingTimeMax();
-		  double posterior = MAPestimate.computeJointDensity_MPI_overSubSample(paraVector,im, poptree, coldCh, numprocesses,currentid);
+		  double posterior = 0;
+		  if(im.get_lociInParallel()==1)
+		    {
+		      
+		      posterior =MAPestimate.computeLogJointDensity_MPI_overSubLoci(paraVector, im, poptree, coldCh, numprocesses,currentid); 		     
+		    }
+		  else
+		    {
+		     posterior =  MAPestimate.computeJointDensity_MPI_overSubSample(paraVector,im, poptree, coldCh, numprocesses,currentid);
+		     std::cout <<"Warning! computeJointDensity_MPI_overSubSample() was called!\n";
+		    }
 		  if(currentid == 0)
 		    {
 		      std::cout << "Parameters: "<< im.get_truePara() <<"\n";
