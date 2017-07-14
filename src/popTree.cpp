@@ -5,6 +5,7 @@
  */
 
 #include <iostream>
+#include <algorithm>    // std::max
 #include "popTree.hpp"
 #include "misc.hpp"
 
@@ -14,7 +15,7 @@ popTree::popTree()
 	isTip = 2;
 	popID = 0;
 	par = 0;
-	desc[0] = 0; desc[1] = 0;
+	// desc[0] = 0; desc[1] = 0;
 	age = 0.0;
 	populationSize = 0.0;
 	no_assignedChildren = 3;
@@ -29,7 +30,8 @@ void popTree::initialization(IM im)
   isTip = 2;
   popID = 0;
   par = 0;
-  desc[0] = 0; desc[1] = 0;
+  // desc[0] = 0; desc[1] = 0;
+  desc.resize(0);
   age = 0.0;
   populationSize = 0.0;
   no_assignedChildren = 3;
@@ -48,11 +50,11 @@ void popTree::deletePopTree()
 {
 	if(isTip == 0 )
 	{
-		desc[0]->deletePopTree();
-		desc[1]->deletePopTree();
+	  desc.at(0)->deletePopTree();
+	  desc.at(1)->deletePopTree();
 	}
-	delete desc[0];
-	delete desc[1];
+	delete desc.at(0);
+	delete desc.at(1);
 	//delete par;
 }
 
@@ -136,20 +138,52 @@ void popTree::replacePara(Eigen::MatrixXd listPara)
 
 void popTree::initialize_popTree_recursion(IM im, std::string newickTree, Eigen::Vector3d paraMax)
 {
+  #ifdef DEBUG
+  std::cout <<"\nIn popTree::initialize_popTree_recursion()\n";
+  std::cout <<"newickTree = "<<newickTree <<"\n";
+#endif// DEBUG
+
+  
+  isRoot = 0;
+  std::size_t loc_openP = newickTree.find_first_of("(");
+  std::size_t loc_closeP = newickTree.find_first_of(")");
+  std::size_t loc_comma = newickTree.find_first_of(",");
+  if(loc_comma == loc_openP)
+    {
+      isTip = 1;
+      popID = (unsigned) atoi(newickTree.c_str());      
+    }
+  else if(loc_comma < loc_openP)
+    {
+      std::string child = newickTree.substr(0, loc_comma);
+      std::string newSubtr = newickTree.substr(loc_comma+1, newickTree.size()-loc_comma);
+      popTree *ch = new popTree;
+      desc.push_back(ch);     
+      desc.at(no_assignedChildren)->initialize_popTree_recursion(im,child,paraMax);
+      no_assignedChildren++;
+      // the remaining string may have one or more children.
+      initialize_popTree_recursion(im,newSubtr,paraMax);
+    }
+  else
+    {
+    }
   double para = 0.0;
   if(newickTree.size()>0 && newickTree.compare(0,1,";")!=0)
     {
       if(newickTree.compare(0,1,"(")==0)
 	{
-	  desc[no_assignedChildren] = new popTree;
-	  desc[no_assignedChildren]->assign_isRoot_isTip(0,0);
+	  popTree *poptr = new popTree;
+	  desc.push_back(poptr);
+	  // desc[no_assignedChildren] = new popTree;
+	  
+	  desc.at(no_assignedChildren)->assign_isRoot_isTip(0,0);
 
 	  //-- splitting time --//
 	  if(im.get_ancPop() == 1) // isolation model			
 	    para = runiform()*paraMax(1);
 	  else // island model (no ancestral population)
 	    para = paraMax(1);
-	  desc[no_assignedChildren]->assign_age(para);
+	  desc.at(no_assignedChildren)->assign_age(para);
 
 	  //-- population size --//	  
 	  if(im.get_ancPop() == 1) // isolation model	
@@ -161,12 +195,12 @@ void popTree::initialize_popTree_recursion(IM im, std::string newickTree, Eigen:
 	    }
 	  else // island model (no ancestral population)
 	    para =0;
-	  desc[no_assignedChildren]->assign_populationSize(para);
+	  desc.at(no_assignedChildren)->assign_populationSize(para);
 
-	  desc[no_assignedChildren]->assign_popID(get_popID()+1);
-	  desc[no_assignedChildren]->no_assignedChildren = 0;
-	  desc[no_assignedChildren]->assign_par(this);
-	  desc[no_assignedChildren]->initialize_popTree_recursion(im,newickTree.erase(0,1),paraMax);
+	  desc.at(no_assignedChildren)->assign_popID(get_popID()+1);
+	  desc.at(no_assignedChildren)->no_assignedChildren = 0;
+	  desc.at(no_assignedChildren)->assign_par(this);
+	  desc.at(no_assignedChildren)->initialize_popTree_recursion(im,newickTree.erase(0,1),paraMax);
 	  no_assignedChildren++;
 	}
       else if(newickTree.compare(0,1,")")==0)
@@ -179,9 +213,11 @@ void popTree::initialize_popTree_recursion(IM im, std::string newickTree, Eigen:
 	}
       else
 	{
-	  desc[no_assignedChildren] = new popTree;
-	  desc[no_assignedChildren]->assign_isRoot_isTip(0,1);
-	  desc[no_assignedChildren]->assign_age(0.0);
+	  popTree *poptr = new popTree;
+	  desc.push_back(poptr);
+	  // desc[no_assignedChildren] = new popTree;
+	  desc.at(no_assignedChildren)->assign_isRoot_isTip(0,1);
+	  desc.at(no_assignedChildren)->assign_age(0.0);
 
 	  //-- population size --//
 	  if(im.get_samePopulationSizes() == 0) // allow different population sizes
@@ -196,15 +232,15 @@ void popTree::initialize_popTree_recursion(IM im, std::string newickTree, Eigen:
 		    para = runiform() * paraMax(0);		    
 		}
 	      else
-		para = desc[0]->get_popSize();		
+		para = desc.at(0)->get_popSize();		
 	    }
-	  desc[no_assignedChildren]->assign_populationSize(para);
+	  desc.at(no_assignedChildren)->assign_populationSize(para);
 
 	  char name = newickTree.at(0);
 	  name = name - '0';
 	  int n = name;
-	  desc[no_assignedChildren]->assign_popID((unsigned)n);
-	  desc[no_assignedChildren]->assign_par(this);
+	  desc.at(no_assignedChildren)->assign_popID((unsigned)n);
+	  desc.at(no_assignedChildren)->assign_par(this);
 	  no_assignedChildren++;
 	  initialize_popTree_recursion(im, newickTree.erase(0,1),paraMax);
 	}
@@ -215,61 +251,178 @@ void popTree::initialize_popTree_recursion(IM im, std::string newickTree, Eigen:
 /**
  * @param paraMax contains (popSizeMax,splittingTimeMax,migRateMax)
  */
+/**
+ * ((1,2):4,3):5; Isolation models with and without migrations
+ * (1,2,3):4; Isolation models but the ancestor has three descendants.
+ * (1,2,3); Island models (with and without migrations)
+ * ((1,2):4,3); A combination of isolation and island models.
+ */
 void popTree::initialize_popTree(IM im, unsigned int processID)
 {
+  #ifdef DEBUG
+  std::cout <<"In popTree::initialize_popTree(IM im, unsigned int processID)\n";
+#endif //DEBUG
   std::string newickTree = im.get_poptree_string();
   unsigned int ancPop = im.get_ancPop();
   Eigen::Vector3d paraMax = im.get_paraMax();
 
+  /*
   if(processID == 0)
     {
 	std::cout << "Initialization of population tree....\n";
     }
+  */
+
+  #ifdef DEBUG
+  std::cout <<"newickTree = "<<newickTree <<"\n";
+#endif// DEBUG
 
   double para = 0.0;
-  if(newickTree.compare(0,1,"(")==0)
+  if(newickTree.compare(0,1,"(")==0 & newickTree.compare(newickTree.size()-1,1,";")==0)
     {
       
       newickTree.erase(0,1);
       newickTree.erase(newickTree.size()-1,1);
-
-      assign_isRoot_isTip(1,0);
-      char name = newickTree.at(newickTree.size()-1);
-      if(newickTree.compare(newickTree.size()-1,1,")")==0)
+	  
+      isRoot = 1;
+  #ifdef DEBUG
+      // std::cout <<"newickTree = "<<newickTree <<"\n";
+#endif// DEBUG
+      
+      std::size_t loc_comma = newickTree.find(",");
+      if(loc_comma == string::npos)
 	{
-	  name = newickTree.at(newickTree.size()-2);
+	  // single population e.g, (1);
+	  isTip = 1;
+	  age = 0;
+	  populationSize= runiform() * paraMax(0);
+	  
+	  newickTree.erase(newickTree.size()-1,1);
+	  popID = (unsigned) atoi(newickTree.c_str());
+	  no_assignedChildren = 0;
+	  
+	  #ifdef DEBUG
+	  std::cout <<"Single population\n";
+	  std::cout << "popID = "<<popID <<"\n";
+#endif// DEBUG
 	}
-      name = name - '0';
-      int n = name;
-     
-      popID = (unsigned) n;
-      //-- splitting time --//
-      if(im.get_ancPop() == 1) // isolation model
+      else
 	{
-	  if(name <= 2) // if ancestral popID =2, it is the case of a sigle population
+	  if(newickTree.compare(newickTree.size()-1,1,")") == 0)
 	    {
-	      age = 0;
-	      isTip =1;
+	      /** island model or a mix
+		  e.g. (1,2,3); ((1,2):4,3); **/
+	      isTip = 0;
+	      age = numeric_limits<long double>::infinity();
+	      populationSize= 0;
+	      popID = 0;
 	    }
 	  else
-	    age = runiform()*paraMax(1);
-	}
-      else // island model (no ancestral population)
-	age = paraMax(1);
+	    {
+	      /** islation models e.g., ((1,2):4,3):5; (1,2,3):4; **/
+	      isTip = 0;
+	      age = runiform()*paraMax(1);
+	      populationSize= runiform() * paraMax(0);
+	      
+	      std::size_t loc = newickTree.find_last_of(":");
+	      std::string str = newickTree.substr(loc+1,newickTree.size()-loc);
+	      popID = (unsigned) atoi(str.c_str());  
+	      
+	      newickTree.erase(loc-1,str.size()+2);
+	    }
+#ifdef DEBUG
+	      std::cout << "popID = "<< popID <<"\n";
+	      std::cout <<"newickTree = "<<newickTree <<"\n";
+#endif //DEBUG
+	      no_assignedChildren = 0;
 
-      //-- ancestral population size --//      
-      if(im.get_ancPop() == 1) // isolation model
-	para = runiform() * paraMax(0);
-      else // island model (no ancestral population)
-	para = 0;
-      populationSize=para;
-      no_assignedChildren = 0;
-      
-      
-      newickTree.erase(newickTree.size()-2,2);
-      
-      if(age > 0)
-	initialize_popTree_recursion(im, newickTree, paraMax);
+	      
+	      std::size_t loc_comma = newickTree.find(",");
+	      std::size_t loc_openP = newickTree.find("(");
+	      std::size_t loc_closeP = newickTree.find(")");	      
+	      /*
+	      int loc_comma = newickTree.find(",");
+	      int loc_openP = newickTree.find("(");
+	      int loc_closeP = newickTree.find(")");
+	      */
+	      int count_open_minus_close = 0;	      
+	      int loc_max =0;
+	      while(newickTree.size()!=0)
+		{
+		  #ifdef DEBUG
+		  /*
+		  std::cout <<"loc_comma = "<< loc_comma <<" loc_openP =" << loc_openP <<" loc_closeP = "<< loc_closeP
+			    <<" count_open_minus_close = "<< count_open_minus_close
+			    << " newickTree = "<< newickTree
+			    <<"\n";
+		  */
+#endif //DEBUG
+		  // if(loc_comma < loc_openP & loc_openP < loc_closeP)
+		  if(loc_openP < loc_closeP)
+		    {
+		      count_open_minus_close++;	
+		      std::string stmp = newickTree.substr(loc_openP+1,newickTree.size()-loc_openP);
+		      if(stmp.find("(")==std::string::npos)
+			loc_openP = std::string::npos;
+		      else
+			loc_openP = 1+loc_openP + stmp.find("(");
+		      #ifdef DEBUG
+		      /*
+		      std::cout << stmp << " loc of ( is "<< stmp.find("(")
+			<<"\n";
+		      */
+#endif //DEBUG
+		    }
+		  else if(loc_openP > loc_closeP)
+		    {
+#ifdef DEBUG
+		      // std::cout << newickTree.substr(loc_closeP+1,newickTree.size()-loc_closeP)<<"\n";
+#endif //DEBUG
+		      count_open_minus_close--;
+		      std::string stmp =newickTree.substr(loc_closeP+1,newickTree.size()-loc_closeP);   
+		      if(count_open_minus_close!=0)
+			{
+			  if(stmp.find(")")==std::string::npos)
+			    loc_closeP = std::string::npos;
+			  else
+			    loc_closeP = 1+loc_closeP + stmp.find(")");
+			}
+		    }
+		  if(count_open_minus_close ==0)
+		    {
+		      
+		      std::string stmp =newickTree.substr(loc_closeP+1,newickTree.size()-loc_closeP);   
+		      if(stmp.find(",")==std::string::npos)
+			loc_comma = newickTree.size();
+		      else
+			loc_comma = 1+loc_closeP + stmp.find(","); 
+		      std::string child = newickTree.substr(0, loc_comma);
+		      #ifdef DEBUG
+		      std::cout <<"child = "<< child <<"\n";
+#endif// DEBUG
+		      popTree *ch = new popTree;
+		      desc.push_back(ch);     
+		      //  desc.at(no_assignedChildren)->initialize_popTree_recursion(im,child,paraMax);
+		      no_assignedChildren++;
+		      newickTree.erase(0,loc_comma+1); // loc_comma+1, newickTree.size()-loc_comma);
+		      loc_comma = newickTree.find_first_of(",");
+		      loc_openP = newickTree.find_first_of("(");
+		      loc_closeP = newickTree.find_first_of(")");
+		      // the remaining string may have one or more children.
+		      //initialize_popTree_recursion(im,newSubtr,paraMax);
+		    }
+		  /*
+		  else 
+		    {
+		      int loc_max = std::max(std::max(loc_comma, loc_closeP), loc_openP);
+		      #ifdef DEBUG
+		      std::cout <<"loc_max = "<< loc_max;
+#endif // DEBUG			
+		      loc_comma = loc_max+newickTree.substr(loc_max+1,newickTree.size()-loc_max).find(",");
+		    }
+		  */
+		}
+	}      
     }
   else
     std::cout << "The input population tree is not in newick format.\n";
@@ -285,10 +438,10 @@ void popTree::initialize_popTree(IM im, unsigned int processID)
       if(age>0)
 	{
 	  std::cout << "From\tTo\tMigrationRate\n";
-	  std::cout << desc[0]->get_popID() << "\t" << desc[0]->get_pop2mig(0)->get_popID()
-		    <<"\t" << desc[0]->get_migRate(0) <<"\n";
-	  std::cout << desc[1]->get_popID() << "\t" << desc[1]->get_pop2mig(0)->get_popID()
-		    <<"\t" << desc[1]->get_migRate(0) <<"\n";
+	  std::cout << desc.at(0)->get_popID() << "\t" << desc.at(0)->get_pop2mig(0)->get_popID()
+		    <<"\t" << desc.at(0)->get_migRate(0) <<"\n";
+	  std::cout << desc.at(1)->get_popID() << "\t" << desc.at(1)->get_pop2mig(0)->get_popID()
+		    <<"\t" << desc.at(1)->get_migRate(0) <<"\n";
 	}
       print_poptree();
       

@@ -492,7 +492,7 @@ int main (int argc, char *argv[])
 	      std::cout <<"#############################\n";
 	      std::cout << numprocesses << " CPUs\n\n";	
 	    }
-	  popTree* poptree = new popTree;
+	  popTree *poptree = new popTree;
 	  Chain coldCh;
 	  coldCh.initializeLmode(im, currentid, numprocesses);
 
@@ -504,6 +504,12 @@ int main (int argc, char *argv[])
 	  clock_t clock_start_Lmode = clock();
 	  
 	  	  
+
+	  if(currentid == 0)
+	    {
+	      std::cout << "Initialization of population tree....\n";
+	    }
+
 	  poptree->initialize_popTree(im, currentid); 
 	  // coldCh.prepare_Lmode(poptree);
 	  clock_t clock_end = clock();
