@@ -139,34 +139,125 @@ void popTree::replacePara(Eigen::MatrixXd listPara)
 void popTree::initialize_popTree_recursion(IM im, std::string newickTree, Eigen::Vector3d paraMax)
 {
   #ifdef DEBUG
+  /*
   std::cout <<"\nIn popTree::initialize_popTree_recursion()\n";
   std::cout <<"newickTree = "<<newickTree <<"\n";
+  */
 #endif// DEBUG
 
   
   isRoot = 0;
-  std::size_t loc_openP = newickTree.find_first_of("(");
-  std::size_t loc_closeP = newickTree.find_first_of(")");
-  std::size_t loc_comma = newickTree.find_first_of(",");
-  if(loc_comma == loc_openP)
+  no_assignedChildren = 0;
+  std::size_t loc_comma = newickTree.find(",");
+  #ifdef DEBUG
+  //  std::cout <<"loc_comma = "<< loc_comma <<"\n";
+#endif //DEBUG
+  if(loc_comma == std::string::npos)
     {
       isTip = 1;
-      popID = (unsigned) atoi(newickTree.c_str());      
-    }
-  else if(loc_comma < loc_openP)
-    {
-      std::string child = newickTree.substr(0, loc_comma);
-      std::string newSubtr = newickTree.substr(loc_comma+1, newickTree.size()-loc_comma);
-      popTree *ch = new popTree;
-      desc.push_back(ch);     
-      desc.at(no_assignedChildren)->initialize_popTree_recursion(im,child,paraMax);
-      no_assignedChildren++;
-      // the remaining string may have one or more children.
-      initialize_popTree_recursion(im,newSubtr,paraMax);
+      popID = (unsigned) atoi(newickTree.c_str());
+      age = 0;
+      populationSize= runiform() * paraMax(0);
     }
   else
     {
+      isTip = 0;
+      #ifdef DEBUG
+      /*
+      std::cout <<"par->get_age() = \n";
+      std::cout << par->get_age()<<"\n";
+      */
+#endif //DEBUG
+      age = runiform()*par->get_age();
+      populationSize= runiform() * paraMax(0);
+      
+      std::size_t loc = newickTree.find_last_of(":");
+      std::string str = newickTree.substr(loc+1,newickTree.size()-loc);
+      popID = (unsigned) atoi(str.c_str());  
+      
+      newickTree.erase(loc-1,str.size()+2);
+      newickTree.erase(0,1);
+      #ifdef DEBUG
+      /*
+      std::cout <<"popID = "<< popID<<"\n";
+      std::cout <<"newickTree = " << newickTree <<"\n";
+      */
+#endif //DEBUG
+      
+      loc_comma = newickTree.find_first_of(",");
+      std::size_t loc_openP = newickTree.find_first_of("(");
+      std::size_t loc_closeP = newickTree.find_first_of(")");
+      int count_open_minus_close = 0;	      
+      while(newickTree.size()!=0)
+	{
+	  if(count_open_minus_close ==0 && loc_comma < loc_openP && loc_comma < loc_closeP)
+	    {
+	      loc_openP = loc_closeP; 
+	    }
+	  if(loc_openP < loc_closeP)
+	    {
+	      count_open_minus_close++;	
+	      std::string stmp = newickTree.substr(loc_openP+1,newickTree.size()-loc_openP);
+	      if(stmp.find("(")==std::string::npos)
+		loc_openP = std::string::npos;
+	      else
+		loc_openP = 1+loc_openP + stmp.find("(");
+#ifdef DEBUG
+	      /*
+		std::cout << stmp << " loc of ( is "<< stmp.find("(")
+		<<"\n";
+		      */
+#endif //DEBUG
+	    }
+	  else if(loc_openP > loc_closeP)
+	    {
+#ifdef DEBUG
+	      // std::cout << newickTree.substr(loc_closeP+1,newickTree.size()-loc_closeP)<<"\n";
+#endif //DEBUG
+	      count_open_minus_close--;
+	      std::string stmp =newickTree.substr(loc_closeP+1,newickTree.size()-loc_closeP);   
+	      if(count_open_minus_close!=0)
+		{
+		  if(stmp.find(")")==std::string::npos)
+		    loc_closeP = std::string::npos;
+		  else
+		    loc_closeP = 1+loc_closeP + stmp.find(")");
+		}
+	      
+	      stmp =newickTree.substr(loc_closeP+1,newickTree.size()-loc_closeP);   
+	      if(stmp.find(",")==std::string::npos)
+		loc_comma = newickTree.size();
+	      else
+		loc_comma = 1+loc_closeP + stmp.find(","); 
+	    }
+	  if(count_open_minus_close ==0)
+	    {
+	      std::string child = newickTree.substr(0, loc_comma);
+	      popTree *ch = new popTree;
+	      desc.push_back(ch);   
+	      desc.at(no_assignedChildren)->assign_par(this);  
+	      desc.at(no_assignedChildren)->initialize_popTree_recursion(im,child,paraMax);
+	      no_assignedChildren++;
+	      if(loc_comma ==std::string::npos)
+		newickTree.resize(0); // loc_comma+1, newickTree.size()-loc_comma);
+	      else
+		newickTree.erase(0,loc_comma+1); // loc_comma+1, newickTree.size()-loc_comma);
+#ifdef DEBUG
+	      /*
+	         std::cout <<"child = "<< child <<"\n";
+		 std::cout <<"loc_comma = "<< loc_comma <<"\n";
+		 std::cout <<"newickTree = "<< newickTree <<"\n";
+	      */
+#endif// DEBUG
+	      loc_comma = newickTree.find_first_of(",");
+	      loc_openP = newickTree.find_first_of("(");
+	      loc_closeP = newickTree.find_first_of(")");
+	      // the remaining string may have one or more children.
+	      //initialize_popTree_recursion(im,newSubtr,paraMax);
+	    }
+	}     
     }
+  /*
   double para = 0.0;
   if(newickTree.size()>0 && newickTree.compare(0,1,";")!=0)
     {
@@ -245,6 +336,7 @@ void popTree::initialize_popTree_recursion(IM im, std::string newickTree, Eigen:
 	  initialize_popTree_recursion(im, newickTree.erase(0,1),paraMax);
 	}
     }
+  */
   return;
 }
 
@@ -278,7 +370,7 @@ void popTree::initialize_popTree(IM im, unsigned int processID)
 #endif// DEBUG
 
   double para = 0.0;
-  if(newickTree.compare(0,1,"(")==0 & newickTree.compare(newickTree.size()-1,1,";")==0)
+  if(newickTree.compare(0,1,"(")==0 && newickTree.compare(newickTree.size()-1,1,";")==0)
     {
       
       newickTree.erase(0,1);
@@ -316,9 +408,14 @@ void popTree::initialize_popTree(IM im, unsigned int processID)
 	      age = numeric_limits<long double>::infinity();
 	      populationSize= 0;
 	      popID = 0;
+	      
+	      newickTree.erase(newickTree.size()-1,1);
+#ifdef DEBUG
+	      std::cout <<"newickTree = "<<newickTree <<"\n";
+#endif //DEBUG
 	    }
 	  else
-	    {
+	    {	      
 	      /** islation models e.g., ((1,2):4,3):5; (1,2,3):4; **/
 	      isTip = 0;
 	      age = runiform()*paraMax(1);
@@ -330,35 +427,24 @@ void popTree::initialize_popTree(IM im, unsigned int processID)
 	      
 	      newickTree.erase(loc-1,str.size()+2);
 	    }
-#ifdef DEBUG
-	      std::cout << "popID = "<< popID <<"\n";
-	      std::cout <<"newickTree = "<<newickTree <<"\n";
-#endif //DEBUG
-	      no_assignedChildren = 0;
-
 	      
-	      std::size_t loc_comma = newickTree.find(",");
-	      std::size_t loc_openP = newickTree.find("(");
-	      std::size_t loc_closeP = newickTree.find(")");	      
-	      /*
-	      int loc_comma = newickTree.find(",");
-	      int loc_openP = newickTree.find("(");
-	      int loc_closeP = newickTree.find(")");
-	      */
-	      int count_open_minus_close = 0;	      
-	      int loc_max =0;
-	      while(newickTree.size()!=0)
-		{
-		  #ifdef DEBUG
-		  /*
-		  std::cout <<"loc_comma = "<< loc_comma <<" loc_openP =" << loc_openP <<" loc_closeP = "<< loc_closeP
-			    <<" count_open_minus_close = "<< count_open_minus_close
-			    << " newickTree = "<< newickTree
-			    <<"\n";
-		  */
+#ifdef DEBUG
+	  //     std::cout <<"newickTree = "<<newickTree <<"\n";
 #endif //DEBUG
-		  // if(loc_comma < loc_openP & loc_openP < loc_closeP)
-		  if(loc_openP < loc_closeP)
+	  no_assignedChildren = 0;  
+	  
+	  std::size_t loc_comma = newickTree.find(",");
+	  std::size_t loc_openP = newickTree.find("(");
+	  std::size_t loc_closeP = newickTree.find(")");
+	  int count_open_minus_close = 0;	      
+	  int loc_max =0;
+	  while(newickTree.size()!=0)
+	    {
+	      if(count_open_minus_close ==0 && loc_comma < loc_openP && loc_comma < loc_closeP)
+		{
+		  loc_openP = loc_closeP; 
+		}
+	      if(loc_openP < loc_closeP)
 		    {
 		      count_open_minus_close++;	
 		      std::string stmp = newickTree.substr(loc_openP+1,newickTree.size()-loc_openP);
@@ -366,17 +452,17 @@ void popTree::initialize_popTree(IM im, unsigned int processID)
 			loc_openP = std::string::npos;
 		      else
 			loc_openP = 1+loc_openP + stmp.find("(");
-		      #ifdef DEBUG
+#ifdef DEBUG
 		      /*
-		      std::cout << stmp << " loc of ( is "<< stmp.find("(")
+			std::cout << stmp << " loc of ( is "<< stmp.find("(")
 			<<"\n";
 		      */
 #endif //DEBUG
 		    }
-		  else if(loc_openP > loc_closeP)
-		    {
+	      else if(loc_openP > loc_closeP)
+		{
 #ifdef DEBUG
-		      // std::cout << newickTree.substr(loc_closeP+1,newickTree.size()-loc_closeP)<<"\n";
+		  // std::cout << newickTree.substr(loc_closeP+1,newickTree.size()-loc_closeP)<<"\n";
 #endif //DEBUG
 		      count_open_minus_close--;
 		      std::string stmp =newickTree.substr(loc_closeP+1,newickTree.size()-loc_closeP);   
@@ -386,44 +472,41 @@ void popTree::initialize_popTree(IM im, unsigned int processID)
 			    loc_closeP = std::string::npos;
 			  else
 			    loc_closeP = 1+loc_closeP + stmp.find(")");
-			}
-		    }
-		  if(count_open_minus_close ==0)
-		    {
-		      
-		      std::string stmp =newickTree.substr(loc_closeP+1,newickTree.size()-loc_closeP);   
+			}		  
+		      stmp =newickTree.substr(loc_closeP+1,newickTree.size()-loc_closeP);   
 		      if(stmp.find(",")==std::string::npos)
 			loc_comma = newickTree.size();
 		      else
-			loc_comma = 1+loc_closeP + stmp.find(","); 
-		      std::string child = newickTree.substr(0, loc_comma);
-		      #ifdef DEBUG
-		      std::cout <<"child = "<< child <<"\n";
-#endif// DEBUG
-		      popTree *ch = new popTree;
-		      desc.push_back(ch);     
-		      //  desc.at(no_assignedChildren)->initialize_popTree_recursion(im,child,paraMax);
-		      no_assignedChildren++;
-		      newickTree.erase(0,loc_comma+1); // loc_comma+1, newickTree.size()-loc_comma);
-		      loc_comma = newickTree.find_first_of(",");
-		      loc_openP = newickTree.find_first_of("(");
-		      loc_closeP = newickTree.find_first_of(")");
-		      // the remaining string may have one or more children.
-		      //initialize_popTree_recursion(im,newSubtr,paraMax);
-		    }
-		  /*
-		  else 
-		    {
-		      int loc_max = std::max(std::max(loc_comma, loc_closeP), loc_openP);
-		      #ifdef DEBUG
-		      std::cout <<"loc_max = "<< loc_max;
-#endif // DEBUG			
-		      loc_comma = loc_max+newickTree.substr(loc_max+1,newickTree.size()-loc_max).find(",");
-		    }
-		  */
+			loc_comma = 1+loc_closeP + stmp.find(",");
 		}
-	}      
-    }
+	      if(count_open_minus_close ==0)
+		{ 
+		  std::string child = newickTree.substr(0, loc_comma);
+		  popTree *ch = new popTree;
+		  desc.push_back(ch);    
+		  desc.at(no_assignedChildren)->assign_par(this); 
+		  desc.at(no_assignedChildren)->initialize_popTree_recursion(im,child,paraMax);
+		  no_assignedChildren++;
+		  if(loc_comma ==std::string::npos)
+		    newickTree.resize(0); // loc_comma+1, newickTree.size()-loc_comma);
+		  else
+		    newickTree.erase(0,loc_comma+1);
+		      #ifdef DEBUG
+		  /*
+		  std::cout <<"child = "<< child <<"\n";
+		  std::cout <<"loc_comma = "<< loc_comma <<"\n";
+		  std::cout <<"newickTree = "<< newickTree <<"\n";
+		  */
+#endif// DEBUG
+		  loc_comma = newickTree.find_first_of(",");
+		  loc_openP = newickTree.find_first_of("(");
+		  loc_closeP = newickTree.find_first_of(")");
+		  // the remaining string may have one or more children.
+		  //initialize_popTree_recursion(im,newSubtr,paraMax);
+		}
+	    }
+	}
+    }   
   else
     std::cout << "The input population tree is not in newick format.\n";
   
