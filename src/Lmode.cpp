@@ -1642,6 +1642,70 @@ void Chain::compute_stateSpaces(unsigned int nPops)
 }
 
 /***
+  * Find the initial state of a tree topology.
+  * Note that the initial state should be the same across tree topologies.
+  */
+ unsigned int Chain::find_initialState(unsigned int nPops, unsigned int topoID)
+ {
+   unsigned int id_initial = 0;
+  	// REMOVE
+ 	/*
+ 	std::cout << "in Chain::find_initialState()\n";
+	//std::cout << stateSpaces.at(0).at(0) <<"\n\n";
+ 	std::cout << "state freq\n";
+ 	for(unsigned int i=0; i<states_observed_freq.at(0).at(0).size(); i++)
+ 	{
+ 		std::cout << states_observed.at(0).at(0).at(i) << " ";
+ 		std::cout << states_observed_freq.at(0).at(0).at(i) << "\n";
+ 	}
+ 	std::cout << "\n";
+ */
+ 
+   unsigned int nKinds = states_observed_freq.at(topoID).at(0).size();
+  /*
+  if(nKinds != nPops)
+    {
+       std::cout << "\n *** Error in Chain::find_initialState() ***\n"
+ "The number of populations (nPops) and the number of kinds of lineages (nKinds)"
+ 	"should be the same, but nPops = " << nPops << " and nKinds = " << nKinds <<".\n\n";
+    }
+  */
+  Eigen::MatrixXd initialState(1,nKinds*nPops);
+   initialState.setZero();
+  for(unsigned int i=0; i<nKinds; i++)
+    initialState(0,i*nKinds+i) = states_observed_freq.at(topoID).at(0).at(i);
+   
+ 
+    unsigned int found = 0;
+  unsigned int count = 0;
+  while(count<stateSpaces.at(topoID).at(0).rows() && found ==0 )
+    {
+       if(stateSpaces.at(topoID).at(0).row(count) == initialState)
+	 {
+ 	  id_initial = count;
+   found = 1;
+   
+ 	  // REMOVE
+ 	  //std::cout << stateSpaces.at(0).at(0).row(count) <<"\n";
+   //std::cout << "id_initial = " << id_initial <<"\n";
+ 	}
+      count++;
+     }
+   
+  // REMOVE
+   /*
+   std::cout << "The initial state is ";
+   std::cout << initialState << "\n";
+  std::cout << "id_initial = " << id_initial <<"\n";
+   */
+   
+   return id_initial;
+ }
+ 
+ // This function below does not work when subtrees are considered or
+ // when the sampling schemes of loci are different
+ // BUG found 7/18/2017
+/***
  * Find the initial state of a tree topology.
  * Note that the initial state should be the same across tree topologies.
  */
