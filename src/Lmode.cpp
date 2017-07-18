@@ -1555,10 +1555,10 @@ void Chain::compute_observedStates_fromTopo()
 	for(unsigned int jj=0; jj<nKinds_lineages.at(ii).size(); jj++)
 	std::cout <<"ii="<<ii<< "jj="<<jj << "nKinds_lineages.at(ii).at(jj) = " <<nKinds_lineages.at(ii).at(jj) <<"\n";
 	}
-  */
+  */ 
 #endif//DEBUG
   #ifdef DEBUG
-      //  std::cout << "Exiting Chain::compute_observedStates_fromTopo()\n";
+  //   std::cout << "Exiting Chain::compute_observedStates_fromTopo()\n";
 #endif// DEBUG
   
   return;
@@ -1682,6 +1682,73 @@ void Chain::compute_stateSpaces(unsigned int nPops)
   return;
 }
 
+
+/***
+ * Find the initial state of a tree topology.
+ * Note that the initial state should be the same across tree topologies.
+ */
+unsigned int Chain::find_initialState(unsigned int nPops, unsigned int topoID)
+{
+  unsigned int id_initial = 0;
+
+	// REMOVE
+	/*
+	std::cout << "in Chain::find_initialState()\n";
+	//std::cout << stateSpaces.at(0).at(0) <<"\n\n";
+	std::cout << "state freq\n";
+	for(unsigned int i=0; i<states_observed_freq.at(0).at(0).size(); i++)
+	{
+		std::cout << states_observed.at(0).at(0).at(i) << " ";
+		std::cout << states_observed_freq.at(0).at(0).at(i) << "\n";
+	}
+	std::cout << "\n";
+	*/
+
+  unsigned int nKinds = states_observed_freq.at(topoID).at(0).size();
+  /*
+  if(nKinds != nPops)
+    {
+      std::cout << "\n *** Error in Chain::find_initialState() ***\n"
+	"The number of populations (nPops) and the number of kinds of lineages (nKinds)"
+	"should be the same, but nPops = " << nPops << " and nKinds = " << nKinds <<".\n\n";
+    }
+  */
+  Eigen::MatrixXd initialState(1,nKinds*nPops);
+  initialState.setZero();
+  for(unsigned int i=0; i<nKinds; i++)
+    initialState(0,i*nKinds+i) = states_observed_freq.at(topoID).at(0).at(i);
+  
+
+
+  unsigned int found = 0;
+  unsigned int count = 0;
+  while(count<stateSpaces.at(topoID).at(0).rows() && found ==0 )
+    {
+      if(stateSpaces.at(topoID).at(0).row(count) == initialState)
+	{
+	  id_initial = count;
+	  found = 1;
+	  
+	  // REMOVE
+	  //std::cout << stateSpaces.at(0).at(0).row(count) <<"\n";
+	  //std::cout << "id_initial = " << id_initial <<"\n";
+	}
+      count++;
+    }
+  
+  // REMOVE
+  /*
+  std::cout << "The initial state is ";
+  std::cout << initialState << "\n";
+  std::cout << "id_initial = " << id_initial <<"\n";
+  */
+  
+  return id_initial;
+}
+
+// This function below does not work when subtrees are considered or
+// when the sampling schemes of loci are different
+// BUG found 7/18/2017
 /***
  * Find the initial state of a tree topology.
  * Note that the initial state should be the same across tree topologies.
@@ -2271,7 +2338,7 @@ void Chain::compute_numSameCoalEvents_inAncPop()
 void Chain::compute_possiblePaths_nPossibleCoalEvents(unsigned int nPops)
 {
   #ifdef DEBUG
-  // std::cout <<"In Chain::compute_possiblePaths_nPossibleCoalEvents(unsigned int nPops)\n";
+  //  std::cout <<"In Chain::compute_possiblePaths_nPossibleCoalEvents(unsigned int nPops)\n";
 #endif //DEBUG
   
   unsigned int numUniqTopo = list_trees.size();
@@ -2291,12 +2358,17 @@ void Chain::compute_possiblePaths_nPossibleCoalEvents(unsigned int nPops)
 	  
 	  nPossibleCoalEvents.at(i).at(j).resize(nPops+1); // the last case is for the ancestral population.
 	}
+  #ifdef DEBUG
+      //  std::cout <<"nGeneCopies = " << nGeneCopies <<" nPops = "<< nPops <<"\n";
+#endif //DEBUG
     }
+
   
-  unsigned int id_initialState = find_initialState(nPops);
+  //  unsigned int id_initialState = find_initialState(nPops); // bug fixed 7/18/2017
+  unsigned int id_initialState = 0;
   for(unsigned int i=0; i<numUniqTopo; i++)
     {
-      // REMOVE
+      id_initialState = find_initialState(nPops,i);
       #ifdef DEBUG
       /*
       std::cout << "tree is ";
@@ -2496,8 +2568,27 @@ void Chain::compute_possiblePaths_nPossibleCoalEvents(unsigned int nPops)
 	  
 	}
     }
-  
- 
+
+  #ifdef DEBUG
+  /*
+  for(unsigned int i=0; i<numUniqTopo; i++)
+    {
+      int sizej = possiblePaths.at(i).size();
+      for(unsigned int j=0; j<sizej; j++)
+	{
+	  int sizek =  possiblePaths.at(i).at(j).size();
+	  for(unsigned int k=0; k<sizek; k++)
+	    {
+	      int sizeh = possiblePaths.at(i).at(j).at(k).size();
+	      for(unsigned int h =0; h<sizeh; h++)
+		std::cout <<"i = "<< i <<" j = "<< j <<" k="<<k<<" possiblePaths.at(i).at(j).at(k).at(h) = "<< possiblePaths.at(i).at(j).at(k).at(h) <<"\n";
+	    }
+	  
+	}
+      std::cout <<"\n";
+    }
+  */
+#endif //DEBUG
   
   return;
 }
@@ -4359,6 +4450,9 @@ long double Chain::compute_logConditionalProb_zeroMig(unsigned int id_sample, un
 // 'crrProcID' is required for debugging only. This function is called on each process.
 double Chain::compute_logConditionalProb(unsigned int id_sample, unsigned int id_locus, popTree* poptree, unsigned int crrProcID)
 {
+  #ifdef DEBUG
+  // std::cout <<"\n In Chain::compute_logConditionalProb()\n";
+#endif// DEBUG
   std::chrono::high_resolution_clock::time_point start_t, end_t;
   std::chrono::high_resolution_clock::time_point start_t_case, end_t_case;
   start_t= std::chrono::high_resolution_clock::now();
@@ -4401,8 +4495,13 @@ double Chain::compute_logConditionalProb(unsigned int id_sample, unsigned int id
   unsigned int count_events=0;
   iter = eventT.begin();
   while(count_events <nGeneCopies-1 && iter!=eventT.end())
-    {  
-      // std::cout << "*iter = " << *iter << "\n";
+    {
+      #ifdef DEBUG
+      /*
+      std::cout << "*iter = " << *iter << "\n";
+      std::cout <<"probMat = "<< probMat <<"\n";
+      */
+#endif //DEBUG
       if(*iter <=splittingTime)
 	{	  
 	  //--- Case 3: coalescent events in sampling populations ---//
@@ -4426,6 +4525,9 @@ double Chain::compute_logConditionalProb(unsigned int id_sample, unsigned int id
 	  Eigen::MatrixXcd V_inv = subMatV.at(trID).at(count_events).at(1);
 	  Eigen::MatrixXcd probMat_each;
 	  
+	      #ifdef DEBUG
+	  //	std::cout <<"V = " <<V <<"\nV_inv = "<<V_inv <<"\n";
+#endif // DEBUG
 	  if(count_events==0) // the first coalescent event
 	    {
 	      //std::cout << "Case3-1 : count_events = "<< count_events<< "\n";
@@ -6328,7 +6430,7 @@ void Chain::compute_partialJointPosteriorDensity_overSubLoci_ESS(popTree* poptre
 void Chain::compute_partialJointPosteriorDensity_overSubLoci(popTree* poptree, IM im, unsigned int crrProcID, unsigned int nProcs)
 {
   #ifdef DEBUG
-  // std::cout <<"In compute_partialJointPosteriorDensity_overSubLoci()\n";
+  //  std::cout <<"In compute_partialJointPosteriorDensity_overSubLoci()\n";
 #endif //DEBUG
   
   std::chrono::high_resolution_clock::time_point start_t, end_t;
@@ -6429,6 +6531,13 @@ void Chain::compute_partialJointPosteriorDensity_overSubLoci(popTree* poptree, I
 			log_nsubtr += (long double) log(numTrees.at(subtreeIDs.at(i).at(j).at(id_st))) ;
 		      logCondPr.at(i) = eachLogProb-log_nsubtr-logPriorTree;
 		    }
+#ifdef DEBUG
+		  /*
+		  std::cout <<"loci j = "<<j <<" sample i = "<< i
+			    << " eachLogProb =" << eachLogProb 
+			<<" logCondPr.at(i) = " << logCondPr.at(i) <<"\n";
+		  */
+#endif //DEBUG
 		}
 	      else
 		{

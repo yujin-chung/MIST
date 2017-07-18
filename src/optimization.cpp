@@ -758,9 +758,11 @@ long double MaxPosterior::computeLogJointDensity_MPI_overSubLoci(Eigen::MatrixXd
   
   long double logPosterior = 0;
   if(crr_procID ==0)
-    {	
+    {
+      /*
       Eigen::Vector3d paraMax = im.get_paraMax();
       double priorPopTree = poptree->computeJointPrior(paraMax);
+      */
       //posterior = exp(global_logPosterior+log(priorPopTree));
       logPosterior = global_logPosterior; //  +log(priorPopTree);
       // std::cout <<"log(priorPopTree) = " << log(priorPopTree) <<"\n";

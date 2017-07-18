@@ -658,7 +658,7 @@ int main (int argc, char *argv[])
 		  if(currentid == 0)
 		    {
 		      std::cout << "Parameters: "<< im.get_truePara() <<"\n";
-		      std::cout << "The posterior density of the parameters is " << posterior <<"\n\n";
+		      std::cout << "The posterior density is proportional to p(coaltrees|parameters) =  " << posterior <<"\n\n";
 		    }
 		}// END of if(MLmodes==5)
 	    }// END of if( MLmodes >= 2)

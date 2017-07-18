@@ -433,7 +433,8 @@ void update_mutationScaler_Kappa_usePriorsOnly(unsigned int id_crrIter, std::vec
   void compute_observedStates_fromTopo();
   Eigen::MatrixXd compute_stateSpaces_recursion(std::vector<unsigned int> freq,unsigned int nPops);
   void compute_stateSpaces(unsigned int nPops);
-  unsigned int find_initialState(unsigned int nPops);
+  unsigned int find_initialState(unsigned int nPops, unsigned int topoID);
+  unsigned int find_initialState(unsigned int nPops); // old version 7/18/2017
   Eigen::MatrixXd find_minimumFreq_forNextTimePeriod(unsigned int id_samples,unsigned int  id_period);
   void compute_possiblePaths(unsigned int nPops);
   void compute_possiblePaths_nPossibleCoalEvents(unsigned int nPops);

@@ -670,9 +670,10 @@ double Chain::compute_logConditionalProb_subtrees(unsigned int id_sample, unsign
       while(count_events <nGeneCopies-1 && iter!=eventT.end())
 	{
 	  #ifdef DEBUG
+	  // if(trID==1)
 	  /*
-	  if(trID==1)
 	    std::cout <<"count_events = "<< count_events << " *iter = " << *iter << "\n";
+	    std::cout <<"probMat = "<< probMat <<"\n";
 	  */
 #endif //DEBUG
 	  if(*iter <=splittingTime)
@@ -992,6 +993,9 @@ double Chain::compute_logConditionalProb_subtrees(unsigned int id_sample, unsign
 	  
 	}
       logPseudoProb += logProb;
+      #ifdef DEBUG
+      //  std::cout <<"logProb = "<< logProb  <<" logPseudoProb = "<< logPseudoProb <<"\n";
+#endif //DEBUG
     }
   /*
     end_t= std::chrono::high_resolution_clock::now();
