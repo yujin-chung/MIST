@@ -2306,9 +2306,11 @@ void Chain::compute_possiblePaths_nPossibleCoalEvents(unsigned int nPops)
 	}
     }
   
-  unsigned int id_initialState = find_initialState(nPops);
+  //  unsigned int id_initialState = find_initialState(nPops); // bug fixed 7/18/2017
+  unsigned int id_initialState = 0;
   for(unsigned int i=0; i<numUniqTopo; i++)
     {
+      id_initialState = find_initialState(nPops,i);
       // REMOVE
       /*
       std::cout << "tree is ";
