@@ -34,17 +34,26 @@ private:
   popTree *par;
   std::vector<popTree*> desc;
   // popTree *desc[2];  // old version
-  double age;
+  double age; // backward in time
   double populationSize;
   
 	// Added by YC 5/9/2014
   std::vector<popTree*> pop2mig;
   std::vector<double> migRate;
+  std::vector<std::vector<double> > epoch2mig;
+
+  // Added by YC 7/19/2017
+  /** splittingTimes.at(i) and pops.at(i) contains the age of popID i+1 and the pointer to popID i+1, respectively.
+   * only root node has this information.
+   */
+  std::vector<double> splittingTimes;
+  std::vector<popTree* > pops;
+  
   
   // old version
   std::vector<Migration> mig;
   
-  unsigned int no_assignedChildren; // 0 if no children assigned (desc[2] is empty); 1 if desc[0] is assigned; 2 if both are assigned.
+  unsigned int no_assignedChildren; // 0 if no children assigned (desc[2] is empty); 1 if desc[0] is assigned; 2 if both are assigned. It can be larger than 2.
 
   unsigned int ancPop; 
   // 0 if island model (no ancestral population);
@@ -74,8 +83,9 @@ public:
 
   void initialization(IM im);
   void initialize_popTree(IM im, unsigned int processID);
-  void initialize_popTree_recursion(IM im, std::string newickTree, Eigen::Vector3d paraMax);
-  void initialize_migrations_recursion(IM im,std::vector<popTree*> pops, double rateMax);
+  void initialize_popTree_recursion(IM im, std::string newickTree, Eigen::Vector3d paraMax, popTree* root);
+  // void initialize_migrations_recursion(IM im,std::vector<popTree*> list_pops, double rateMax);
+  //  void initialize_migrations_recursion(IM im, popTree* pop, double rateMax);
   void initialize_migrations(IM im,double rateMax, unsigned int processID);
 
   
@@ -94,6 +104,9 @@ public:
   // Added by YC 5/9/2014
   void add_pop2mig(popTree* pop){pop2mig.push_back(pop);}
   void add_migRate(double rate){migRate.push_back(rate);}
+  void add_epoch2mig(std::vector<double> epoch){epoch2mig.push_back(epoch);}
+  void add_splittingTimes(unsigned int loc, double age){splittingTimes.at(loc) = age; return;}
+  void add_pops(unsigned int loc, popTree* pop){pops.at(loc) = pop; return;}
   
   unsigned int get_popID(){return popID;}
   unsigned int get_isRoot(){return isRoot;}
@@ -103,9 +116,17 @@ public:
   popTree* get_pop2mig(unsigned int i){return pop2mig.at(i);}
   double get_migRate(unsigned int i){return migRate.at(i);}
   unsigned int get_no_assignedChildren(){return no_assignedChildren;}
-  unsigned int get_ancPop(){return ancPop;} 
+  unsigned int get_ancPop(){return ancPop;}
+  popTree* get_child(unsigned int i){return desc.at(i);}
   popTree* get_firstChild(){return desc.at(0);}
   popTree* get_secondChild(){return desc.at(1);}
+  int get_size_of_splittingTimes(){return splittingTimes.size();}
+  int get_size_of_pops(){return pops.size();}
+  int get_size_of_migRate(){return migRate.size();}
+  double get_epoch2mig(unsigned int i, unsigned int j){return epoch2mig.at(i).at(j);}
+
+  void resize_splittingTimes(unsigned int newSize){splittingTimes.resize(newSize); return;}
+  void resize_pops(unsigned int newSize){pops.resize(newSize); return;}
 
   void print_poptree();
   void print_popSize();

@@ -136,7 +136,7 @@ void popTree::replacePara(Eigen::MatrixXd listPara)
 
 
 
-void popTree::initialize_popTree_recursion(IM im, std::string newickTree, Eigen::Vector3d paraMax)
+void popTree::initialize_popTree_recursion(IM im, std::string newickTree, Eigen::Vector3d paraMax, popTree* root)
 {
   #ifdef DEBUG
   /*
@@ -157,7 +157,13 @@ void popTree::initialize_popTree_recursion(IM im, std::string newickTree, Eigen:
       isTip = 1;
       popID = (unsigned) atoi(newickTree.c_str());
       age = 0;
-      populationSize= runiform() * paraMax(0);
+      populationSize= runiform() * paraMax(0);  
+      if(root->get_size_of_splittingTimes()<popID)
+	root->resize_splittingTimes(popID);
+      root->add_splittingTimes(popID-1,age);
+      if(root->get_size_of_pops()< popID)
+	root->resize_pops(popID);
+      root->add_pops(popID-1,this);
     }
   else
     {
@@ -168,12 +174,22 @@ void popTree::initialize_popTree_recursion(IM im, std::string newickTree, Eigen:
       std::cout << par->get_age()<<"\n";
       */
 #endif //DEBUG
-      age = runiform()*par->get_age();
+      if(par->get_popID() ==0) // island model and `par' is the root
+	age = runiform()*paraMax(1);
+      else
+	age = runiform()*par->get_age();
       populationSize= runiform() * paraMax(0);
       
       std::size_t loc = newickTree.find_last_of(":");
       std::string str = newickTree.substr(loc+1,newickTree.size()-loc);
-      popID = (unsigned) atoi(str.c_str());  
+      popID = (unsigned) atoi(str.c_str());
+      
+      if(root->get_size_of_splittingTimes()<popID)
+	root->resize_splittingTimes(popID);
+      root->add_splittingTimes(popID-1,age);
+      if(root->get_size_of_pops()< popID)
+	root->resize_pops(popID);
+      root->add_pops(popID-1,this);
       
       newickTree.erase(loc-1,str.size()+2);
       newickTree.erase(0,1);
@@ -236,7 +252,7 @@ void popTree::initialize_popTree_recursion(IM im, std::string newickTree, Eigen:
 	      popTree *ch = new popTree;
 	      desc.push_back(ch);   
 	      desc.at(no_assignedChildren)->assign_par(this);  
-	      desc.at(no_assignedChildren)->initialize_popTree_recursion(im,child,paraMax);
+	      desc.at(no_assignedChildren)->initialize_popTree_recursion(im,child,paraMax,root);
 	      no_assignedChildren++;
 	      if(loc_comma ==std::string::npos)
 		newickTree.resize(0); // loc_comma+1, newickTree.size()-loc_comma);
@@ -257,86 +273,6 @@ void popTree::initialize_popTree_recursion(IM im, std::string newickTree, Eigen:
 	    }
 	}     
     }
-  /*
-  double para = 0.0;
-  if(newickTree.size()>0 && newickTree.compare(0,1,";")!=0)
-    {
-      if(newickTree.compare(0,1,"(")==0)
-	{
-	  popTree *poptr = new popTree;
-	  desc.push_back(poptr);
-	  // desc[no_assignedChildren] = new popTree;
-	  
-	  desc.at(no_assignedChildren)->assign_isRoot_isTip(0,0);
-
-	  //-- splitting time --//
-	  if(im.get_ancPop() == 1) // isolation model			
-	    para = runiform()*paraMax(1);
-	  else // island model (no ancestral population)
-	    para = paraMax(1);
-	  desc.at(no_assignedChildren)->assign_age(para);
-
-	  //-- population size --//	  
-	  if(im.get_ancPop() == 1) // isolation model	
-	    {
-	      if(im.get_samePopulationSizes() == 1) // same population sizes
-		para = populationSize;
-	      else // allow different population sizes
-		para = runiform() * paraMax(0);
-	    }
-	  else // island model (no ancestral population)
-	    para =0;
-	  desc.at(no_assignedChildren)->assign_populationSize(para);
-
-	  desc.at(no_assignedChildren)->assign_popID(get_popID()+1);
-	  desc.at(no_assignedChildren)->no_assignedChildren = 0;
-	  desc.at(no_assignedChildren)->assign_par(this);
-	  desc.at(no_assignedChildren)->initialize_popTree_recursion(im,newickTree.erase(0,1),paraMax);
-	  no_assignedChildren++;
-	}
-      else if(newickTree.compare(0,1,")")==0)
-	{	  
-	  par->initialize_popTree_recursion(im,newickTree.erase(0,1),paraMax);
-	}
-      else if(newickTree.compare(0,1,",")==0)
-	{
-	  initialize_popTree_recursion(im,newickTree.erase(0,1),paraMax);
-	}
-      else
-	{
-	  popTree *poptr = new popTree;
-	  desc.push_back(poptr);
-	  // desc[no_assignedChildren] = new popTree;
-	  desc.at(no_assignedChildren)->assign_isRoot_isTip(0,1);
-	  desc.at(no_assignedChildren)->assign_age(0.0);
-
-	  //-- population size --//
-	  if(im.get_samePopulationSizes() == 0) // allow different population sizes
-	    para = runiform() * paraMax(0);
-	  else
-	    {
-	      if(no_assignedChildren == 0)
-		{
-		  if(im.get_ancPop() == 1) // isolation model
-		    para = populationSize;
-		  else // island model (no ancestral population)
-		    para = runiform() * paraMax(0);		    
-		}
-	      else
-		para = desc.at(0)->get_popSize();		
-	    }
-	  desc.at(no_assignedChildren)->assign_populationSize(para);
-
-	  char name = newickTree.at(0);
-	  name = name - '0';
-	  int n = name;
-	  desc.at(no_assignedChildren)->assign_popID((unsigned)n);
-	  desc.at(no_assignedChildren)->assign_par(this);
-	  no_assignedChildren++;
-	  initialize_popTree_recursion(im, newickTree.erase(0,1),paraMax);
-	}
-    }
-  */
   return;
 }
 
@@ -352,21 +288,15 @@ void popTree::initialize_popTree_recursion(IM im, std::string newickTree, Eigen:
 void popTree::initialize_popTree(IM im, unsigned int processID)
 {
   #ifdef DEBUG
-  std::cout <<"In popTree::initialize_popTree(IM im, unsigned int processID)\n";
+  //  std::cout <<"In popTree::initialize_popTree(IM im, unsigned int processID)\n";
 #endif //DEBUG
   std::string newickTree = im.get_poptree_string();
   unsigned int ancPop = im.get_ancPop();
   Eigen::Vector3d paraMax = im.get_paraMax();
 
-  /*
-  if(processID == 0)
-    {
-	std::cout << "Initialization of population tree....\n";
-    }
-  */
 
   #ifdef DEBUG
-  std::cout <<"newickTree = "<<newickTree <<"\n";
+  // std::cout <<"newickTree = "<<newickTree <<"\n";
 #endif// DEBUG
 
   double para = 0.0;
@@ -387,6 +317,7 @@ void popTree::initialize_popTree(IM im, unsigned int processID)
 	  // single population e.g, (1);
 	  isTip = 1;
 	  age = 0;
+	  splittingTimes.push_back(age);
 	  populationSize= runiform() * paraMax(0);
 	  
 	  newickTree.erase(newickTree.size()-1,1);
@@ -394,8 +325,10 @@ void popTree::initialize_popTree(IM im, unsigned int processID)
 	  no_assignedChildren = 0;
 	  
 	  #ifdef DEBUG
+	  /*
 	  std::cout <<"Single population\n";
 	  std::cout << "popID = "<<popID <<"\n";
+	  */
 #endif// DEBUG
 	}
       else
@@ -411,7 +344,7 @@ void popTree::initialize_popTree(IM im, unsigned int processID)
 	      
 	      newickTree.erase(newickTree.size()-1,1);
 #ifdef DEBUG
-	      std::cout <<"newickTree = "<<newickTree <<"\n";
+	      //  std::cout <<"newickTree = "<<newickTree <<"\n";
 #endif //DEBUG
 	    }
 	  else
@@ -423,7 +356,13 @@ void popTree::initialize_popTree(IM im, unsigned int processID)
 	      
 	      std::size_t loc = newickTree.find_last_of(":");
 	      std::string str = newickTree.substr(loc+1,newickTree.size()-loc);
-	      popID = (unsigned) atoi(str.c_str());  
+	      popID = (unsigned) atoi(str.c_str());
+
+	      splittingTimes.resize(popID);
+	      splittingTimes.at(popID-1) = age;
+	      
+	      pops.resize(popID);
+	      pops.at(popID-1) = this;
 	      
 	      newickTree.erase(loc-1,str.size()+2);
 	    }
@@ -485,7 +424,7 @@ void popTree::initialize_popTree(IM im, unsigned int processID)
 		  popTree *ch = new popTree;
 		  desc.push_back(ch);    
 		  desc.at(no_assignedChildren)->assign_par(this); 
-		  desc.at(no_assignedChildren)->initialize_popTree_recursion(im,child,paraMax);
+		  desc.at(no_assignedChildren)->initialize_popTree_recursion(im,child,paraMax, this);
 		  no_assignedChildren++;
 		  if(loc_comma ==std::string::npos)
 		    newickTree.resize(0); // loc_comma+1, newickTree.size()-loc_comma);
@@ -509,6 +448,35 @@ void popTree::initialize_popTree(IM im, unsigned int processID)
     }   
   else
     std::cout << "The input population tree is not in newick format.\n";
+
+
+  // clean up the splitting times.
+  #ifdef DEBUG
+  /*
+  for(unsigned int i=0; i<splittingTimes.size(); i++)
+    std::cout <<"i = "<< i+1 << " splttingTimes.at(i) = "<< splittingTimes.at(i) <<"\n";
+  print_poptree();
+  std::cout <<"pops.size() = "<< pops.size()<<"\n";
+  */
+#endif //DEBUG
+  for(unsigned int i=0; i<splittingTimes.size()-1; i++)
+    {
+      if(splittingTimes.at(i) > splittingTimes.at(i+1))
+	{
+	  double lowerB = 0;
+	  if(i != 0)
+	    lowerB =  splittingTimes.at(i-1);
+	  splittingTimes.at(i) = lowerB + runiform()*(splittingTimes.at(i+1)-lowerB);
+	  pops.at(i)-> assign_age(splittingTimes.at(i));
+	}
+    }  
+  #ifdef DEBUG
+  /*
+  for(unsigned int i=0; i<splittingTimes.size(); i++)
+    std::cout <<"i = "<< i+1 << " splttingTimes.at(i) = "<< splittingTimes.at(i) <<"\n";
+  print_poptree();
+  */
+#endif //DEBUG
   
   // Initialize migration rates
   if(age>0)
@@ -520,12 +488,16 @@ void popTree::initialize_popTree(IM im, unsigned int processID)
     {
       if(age>0)
 	{
+	  print_migRate();
+	  /*
 	  std::cout << "From\tTo\tMigrationRate\n";
 	  std::cout << desc.at(0)->get_popID() << "\t" << desc.at(0)->get_pop2mig(0)->get_popID()
 		    <<"\t" << desc.at(0)->get_migRate(0) <<"\n";
 	  std::cout << desc.at(1)->get_popID() << "\t" << desc.at(1)->get_pop2mig(0)->get_popID()
 		    <<"\t" << desc.at(1)->get_migRate(0) <<"\n";
+	  */
 	}
+      std::cout <<"\nPopulation tree\n";
       print_poptree();
       
       std::cout << "End of population tree initialization.\n\n";
@@ -535,32 +507,143 @@ void popTree::initialize_popTree(IM im, unsigned int processID)
 }
 
 
-
-void popTree::initialize_migrations_recursion(IM im, std::vector<popTree*> pops, double rateMax)
+/*
+void popTree::initialize_migrations_recursion(IM im, std::vector<popTree*> list_pops, double rateMax)
+// void popTree::initialize_migrations_recursion(IM im, popTree* pop, double rateMax)
 {
-  // FIXME
-  // now it works for 2 population IM model only.
+  // migration from `this' to pop
+  pop2mig.push_back(pop);
+  migRate.push_back(runiform()*rateMax);
+  std::vector<double> epoch;
+  epoch.push_back(max(age,pop->get_age()));
+  epoch.push_back(min(par->get_age(),pop->par->get_age()));
+  epoch2mig.push_back(epoch);
 
-  if(pops.size()==2)
+  // migration from pop to `this'
+  pop->add_pop2mig(this);
+  pop->add_migRate(runiform()*rateMax);
+  pop->add_epoch2mig(epoch);
+  
+  
+  #ifdef DEBUG
+  std::cout <<"age =" << age <<" pop->get_age() = "<< pop->get_age()<<"\n";
+#endif //DEBUG
+  if(age < pop->get_age())
     {
-      double rate = runiform()*rateMax;
-      pops.at(0)->add_pop2mig(pops.at(1));
-      pops.at(0)->add_migRate(rate);
-      if(im.get_sameMigrationRates() == 0) // allow different migration rates
-	rate = runiform()*rateMax;
-      pops.at(1)->add_pop2mig(pops.at(0));
-      pops.at(1)->add_migRate(rate);
+      popTree* tempPop = pop;
+      for(unsigned int i=0; i<tempPop->get_no_assignedChildren(); i++)
+	{
+	  
+	  pop2mig.push_back(tempPop->get_child(i));
+	  migRate.push_back(runiform()*rateMax);
+	  std::vector<double> epoch;
+	  epoch.push_back(max(age,tempPop->get_child(i)->get_age()));
+	  epoch.push_back(min(par->get_age(),tempPop->get_age()));
+	  epoch2mig.push_back(epoch);
+	  epoch.resize(0);
+	}
     }
+  
+  if(no_assignedChildren >= 2)
+    {
+      for(unsigned int i=0; i<no_assignedChildren; i++)
+	{
+	  for(unsigned int j=i+1; j<no_assignedChildren; j++)
+	    {
+	      // if(i != j)
+		desc.at(i)->initialize_migrations_recursion(im,desc.at(j), rateMax);
+	    }
+	  
+	}
+    }
+  
 }
+*/
 
 void popTree::initialize_migrations(IM im, double rateMax, unsigned int processID)
 {
+#ifdef DEBUG
+  /*
+  std::cout <<"\nIn popTree::initialize_migrations()\n";
+  std::cout <<"no_assignedChildren = "<< no_assignedChildren <<"\n";
+  std::cout <<"pops.size() = "<< pops.size()<<"\n";
+  */
+#endif //DEBUG
 
-  std::vector<popTree*> pops;
-  pops.push_back(desc[0]);
-  pops.push_back(desc[1]);
-  initialize_migrations_recursion(im,pops,rateMax);
+  for(unsigned int i=0; i<pops.size(); i++)
+    {
+      popTree* source = pops.at(i);
+      if(source->get_isRoot()==0)
+	{
+	  for(unsigned int j=i+1; j<pops.size(); j++)
+	    {
+	      popTree* receiver = pops.at(j);
+	      unsigned int overlap = 0;
+	      double LB, UB;
+#ifdef DEBUG
+	      //  std::cout <<"i = "<< i <<"j=" << j<<"\n";
+#endif// DEBUG
+	      if(source->get_age() == receiver->get_age())
+		{
+		  LB = receiver->get_age();
+		  UB = min(source->par->get_age(), receiver->par->get_age());
+		  overlap = 1;
+		}
+	      else if(source->get_age() < receiver->get_age())
+		{
+		  LB = receiver->get_age();
+		  if(source->par->get_age() > receiver->get_age())
+		    {
+		      UB = min(source->par->get_age(), receiver->par->get_age());
+		      overlap = 1;
+		    }
+		}
+	      else
+		{
+		  LB = source->get_age();
+		  if(receiver->par->get_age() > source->get_age())
+		    {
+		      UB = min(source->par->get_age(), receiver->par->get_age());
+		      // UB = source->get_age();
+		      overlap = 1;
+		    }
+		}
+	      if(overlap)
+		{
+		  #ifdef DEBUG
+		  // std::cout <<"i = "<< i <<"j=" << j<<"\n";
+#endif// DEBUG
+		  std::vector<double> epoch;
+		  epoch.push_back(LB); epoch.push_back(UB);
+		  source->add_pop2mig(receiver);
+		  source->add_migRate(runiform()*rateMax);
+		  source->add_epoch2mig(epoch);
+		  receiver->add_pop2mig(source);
+		  receiver->add_migRate(runiform()*rateMax);
+		  receiver->add_epoch2mig(epoch);		  
+		}
+	    }	  
+	}
+    }
 
+  /*
+  if(no_assignedChildren >= 2)
+    {
+      for(unsigned int i=0; i<no_assignedChildren; i++)
+	{
+	  std::vector<popTree*> list_pops;
+	  for(unsigned int j=0; j<no_assignedChildren; j++)
+	    {
+	      if(j != i)
+		{
+		  list_pops.push_back(desc.at(j));
+		}
+	    }
+	  desc.at(i)->initialize_migrations_recursion(im,list_pops, rateMax);
+	}
+    }
+  */
+ 
 }
 
 
@@ -604,16 +687,6 @@ void Migration::print()
 
 
 
-
-// old version - YC 7/2/2014
-/*
-void popTree::print_migrationInfo()
-{
-	std::cout << "The current population ID is " << popID <<"\n";
-	for(unsigned int i=0; i<mig.size(); i++)
-		mig.at(i).print();
-}
-*/
 
 
 unsigned int popTree::size()
@@ -687,32 +760,52 @@ int popTree::getID_beforeSplit(int id, double SplittingT, int &found)
 
 void popTree::print_popSize()
 {
-	if(isRoot == 1)
-		std::cout << "Population sizes:\n";
-
-	std::cout << popID << ": " << populationSize <<"\n";
-
-	if(isTip == 0)
-	{
-		desc[0]->print_popSize();
-		desc[1]->print_popSize();
-	}
+  if(isRoot == 1)
+    {
+      std::cout << "Population sizes:\n";
+      for(unsigned int i=0; i<pops.size(); i++)
+	std::cout << pops.at(i)->get_popID() << ": " << pops.at(i)->get_popSize() <<"\n";
+	
+    }
+  else if(isTip == 0)
+    {
+      std::cout << popID << ": " << populationSize <<"\n";
+      for(unsigned int i=0; i<no_assignedChildren; i++)
+	desc.at(i)->print_popSize();
+      //	  desc[1]->print_popSize();
+    }
 }
 
 
 
 void popTree::print_node()
 {
-	if(isTip == 1)
-		std::cout << popID << ":" << par->age;
-	else
+  double intv =0;
+  if(isTip == 1)
+    {
+      if(par->get_popID()==0) // island model and `par' is the root
+	intv = par->get_age();
+      else
+	intv = par->get_age()-age;
+      
+      std::cout << popID << ":" << intv;
+    }
+  else
+    {
+      std::cout << "(";
+      for(unsigned int i=0; i<no_assignedChildren; i++)
 	{
-		std::cout << "(";
-		desc[0]->print_node();
-		std::cout << ",";
-		desc[1]->print_node();
-		std::cout << ")"<< popID <<":" << par->age - age ;
+	  desc.at(i)->print_node();
+	  if(i != no_assignedChildren-1)
+	    std::cout << ",";
+	  // desc[1]->print_node();
 	}
+      if(par->get_popID()==0) // island model and `par' is the root
+	intv = par->get_age();
+      else
+	intv = par->get_age()-age;
+      std::cout << ")"<< popID <<":" << intv ;
+    }
 }
 
 
@@ -722,25 +815,26 @@ void popTree::print_poptree()
 		std::cout << "(" << popID << ");\n";
 	else
 	{
-		std::cout << "(";
-		try{
-			desc[0]->print_node();
-		}catch (std::exception &e) {
-			std::cout << "In popTree::print_poptree(). Can't access element desc[0] \n";
-		}
-
+	  std::cout << "(";
+	  for(unsigned int i=0; i<no_assignedChildren; i++)
+	    {
+	      try{
+		desc.at(i)->print_node();
+	      }catch (std::exception &e) {
+		std::cout << "In popTree::print_poptree(). Can't access element desc[0] \n";
+	      }
+	      if(i != no_assignedChildren-1)
 		std::cout << ",";
-		try{
-			desc[1]->print_node();
-		}catch (std::exception &e) {
-			std::cout << "In popTree::print_poptree(). Can't access element desc[1] \n";
-		}
-		std::cout << ")"<< popID <<";\n";
-	}
-
-	//REMOVE
-	//std::cout << "testing\n";
-
+	    }
+	  /*		    
+			    try{
+			    desc[1]->print_node();
+			    }catch (std::exception &e) {
+			    std::cout << "In popTree::print_poptree(). Can't access element desc[1] \n";
+			    }
+	  */
+	  std::cout << ")"<< popID <<";\n";
+	}	
 	print_popSize();
 }
 
@@ -749,20 +843,40 @@ void popTree::print_migRate()
 {
   if(isRoot == 1)
     {
-      std::cout << "Migration rates\n";
+      std::cout << "\nMigration rates\n";
+
+      for(unsigned int i=0; i<pops.size(); i++)
+	{
+	  if(pops.at(i)->get_isRoot()==0)
+	    {
+	      for(unsigned int j=0; j<pops.at(i)->get_size_of_migRate(); j++)
+		{
+		  std::cout << "From pop " << pops.at(i)->get_popID()
+			    << " to pop "<< pops.at(i)->get_pop2mig(j)->get_popID()
+			    << ": " << pops.at(i)->get_migRate(j)
+			    << " during ("<<pops.at(i)->get_epoch2mig(j,0)
+			    << ","<< pops.at(i)->get_epoch2mig(j,1)<<")"
+			    << "\n";
+		}	      
+	    }
+	}
     }
+  /*
   if(migRate.size()>0)
     {
       for(unsigned int i=0; i<migRate.size(); i++)
 	{
-	  std::cout << "From pop " << popID << " to pop "<< pop2mig.at(i)->get_popID() << ": " << migRate.at(i) << "\n";
+	  std::cout << "From pop " << popID << " to pop "<< pop2mig.at(i)->get_popID() << ": " << migRate.at(i)
+		    << " during ("<<epoch2mig.at(i).at(0)<< ","<< epoch2mig.at(i).at(1)<<")"
+		    << "\n";
 	}
     }
-  if(isTip == 0)
+  if(no_assignedChildren >= 2)
     {
-      desc[0]->print_migRate();
-      desc[1]->print_migRate();
+      for(unsigned int i=0; i<no_assignedChildren; i++)
+	desc.at(i)->print_migRate();
     }
+*/
 }
 
 void popTree::print_allPopTree()
