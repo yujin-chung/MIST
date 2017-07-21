@@ -75,6 +75,10 @@ void Chain::read_LmodeInputFile( IM im)
       // read_mutationScaler_partial();
       read_tipIDs_partial(im);
       read_listTrees();
+      
+      if(Forest==1||Forest==3)
+	get_subListTrees();
+      
     }
 
   find_print_theMaxHeightsTrees();

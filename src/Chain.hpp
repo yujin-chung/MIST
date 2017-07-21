@@ -477,6 +477,7 @@ void update_mutationScaler_Kappa_usePriorsOnly(unsigned int id_crrIter, std::vec
 
   // subtrees 
   void getSubtree(unsigned int subSize, node* tree, unsigned int sampleID, unsigned int subLocusID);
+  void get_subListTrees();
   
 	// old version
 	unsigned int compute_size_stateSpaces(unsigned int freq, unsigned int nPops);

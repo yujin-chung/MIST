@@ -6,6 +6,325 @@
 
 /* This file contains functions to have subtrees of coalescent trees */
 
+
+void Chain::get_subListTrees()
+{
+  #ifdef DEBUG
+  std::cout <<"\nIn  Chain::get_subListTrees()\n";
+#endif // DEBUG
+  
+  subtreeIDs.resize(nSubSample);
+  subcoalTimes.resize(nSubSample);
+  subtipIDs.resize(nSubSample);
+  
+  std::vector<nodeSimple*> list_trees_full;
+  for(unsigned int i=0; i<list_trees.size(); i++)
+    {
+      unsigned int numTotalSeq = list_trees.at(i)->getSize();
+      nodeSimple *tree = list_trees.at(i);
+      list_trees_full.push_back(tree);
+      
+      #ifdef DEBUG
+      std::cout <<"i = "<< i <<" numTotalSeq = "<< numTotalSeq <<"\n";
+      tree->print_topo();
+#endif //DEBUG
+      
+      std::vector<nodeSimple*> subtrees;  
+      if(sizeCoalsubtree >= numTotalSeq)
+	{
+	  std::cout <<"\n\nError in Chain::get_subListTrees. 'subCoalsubtree' should be smaller than the size of trees in 'ListTopo.txt'.\n";
+	  std::cout <<"'sizeCoalsubtree' = " << sizeCoalsubtree <<" and the size of trees in ListTopo.txt = "<< numTotalSeq <<"\n\n";
+	}
+      else 
+	{
+	  unsigned int leftsize = min(sizeCoalsubtree,tree->getFirstChild()->getSize());
+	  unsigned int rightsize = min(sizeCoalsubtree-leftsize,tree->getSecondChild()->getSize());
+      #ifdef DEBUG
+          std::cout <<"leftsize = "<< leftsize <<" rightsize = "<< rightsize <<"\n";
+#endif //DEBUG
+	  for(int ll=leftsize; ll>=0; ll--)
+	    {	  
+	      nodeSimple* subtr = new nodeSimple;
+	      int rr=sizeCoalsubtree-ll;
+#ifdef DEBUG
+	      std::cout <<"ll = "<< ll <<" rr = "<< rr <<"\n";
+#endif //DEBUG
+	      if(rr<0 || rr> tree->getSecondChild()->getSize())
+		ll=-1;
+	      else
+		{
+		  subtr->deepCopy(tree);
+		  if(ll==0)
+		    {
+		      if(rr == subtr->getSecondChild()->getSize())
+			{
+			  subtr->getFirstChild()->deleteTopo();
+			  subtr = subtr->getSecondChild();
+			  delete subtr->getPar();
+			  subtr->set_isRoot(1);
+			  subtrees.push_back(subtr);		  
+			}
+		      else
+			{	      
+			  std::vector<nodeSimple*> subsubtrees;
+			  subsubtrees = subtr->getSecondChild()->getSubtree(rr);
+			  for(unsigned int i=0; i<subsubtrees.size(); i++)
+			    {
+			      // subsubtrees.at(i)->assignPopulations2Tips(SeqPop);
+			      subtrees.push_back(subsubtrees.at(i));
+#ifdef DEBUG			  
+			      // subsubtrees.at(i)->print_coaltree();
+			      // std::cout <<"subtrees.size() = "<<subtrees.size() << "\n";
+			      // for(unsigned int i=0; i<subtrees.size(); i++)
+			      //   {
+			      //     std::cout <<"i="<<i<<" ";
+			      //     subtrees.at(i)->print_coaltree();
+			      //   }			 
+#endif //DEBUG
+			    }
+			  subtr->deleteTopo();
+			}
+		    }
+		  else if(rr==0)
+		    {
+		      if(ll == subtr->getFirstChild()->getSize())
+			{
+			  subtr->getSecondChild()->deleteTopo();
+			  subtr = subtr->getFirstChild();		  
+			  delete subtr->getPar();
+			  subtr->set_isRoot(1);
+			  // subtr->assignPopulations2Tips(SeqPop);
+			  subtrees.push_back(subtr);
+			}
+		      else
+			{		      
+			  std::vector<nodeSimple*> subsubtrees;
+			  subsubtrees = tree->getFirstChild()->getSubtree(ll);
+			  for(unsigned int i=0; i<subsubtrees.size(); i++)
+			    {
+			      // subtrees.at(i)->assignPopulations2Tips(SeqPop);
+			      subtrees.push_back(subsubtrees.at(i));
+			}
+			  subtr->deleteTopo();
+			}
+		    }
+		  else if(ll>0 & rr>0)
+		    {
+#ifdef DEBUG
+		      std::cout <<"subtr->getFirstChild() is ";
+		      subtr->getFirstChild()->print_topo();
+		      std::cout <<"\n";
+#endif //DEBUG
+		      std::vector<nodeSimple*> Lsubtrees;
+		      if(ll ==  subtr->getFirstChild()->getSize())
+			{
+			  nodeSimple* Ltree = new nodeSimple;
+			  Ltree->deepCopy(subtr->getFirstChild());
+			  Lsubtrees.push_back(Ltree);		      
+			}
+		      else if(ll < subtr->getFirstChild()->getSize())
+			{
+			  Lsubtrees = subtr->getFirstChild()->getSubtree(ll);
+			}
+		      
+#ifdef DEBUG
+		      // std::cout <<"subtr->desc[1] is ";
+		      // subtr->desc[1]->print_coaltree();
+#endif //DEBUG
+		      std::vector<nodeSimple*> Rsubtrees;
+		      if(rr ==  subtr->getSecondChild()->getSize())
+			{
+			  nodeSimple* Rtree = new nodeSimple;
+			  Rtree->deepCopy(subtr->getSecondChild());//desc[1]->deepCopy_root();
+			  Rsubtrees.push_back(Rtree);		      
+			}
+		      else if(rr < subtr->getSecondChild()->getSize())
+			{		    		      
+			  Rsubtrees = subtr->getSecondChild()->getSubtree(rr);
+			}
+#ifdef DEBUG
+		      //   std::cout <<"Lsubtrees.size() = "<<Lsubtrees.size()
+		      //	    <<" Rsubtrees.size() = "<< Rsubtrees.size() <<"\n";
+#endif //DEBUG
+		      for(unsigned int i=0; i<Lsubtrees.size(); i++)
+			{
+			  for(unsigned int j=0; j<Rsubtrees.size(); j++)
+			    {
+			      nodeSimple* tempTr = new nodeSimple;
+			      tempTr->deepCopy(subtr);
+			      tempTr->getFirstChild()->deleteTopo();
+			      tempTr->getSecondChild()->deleteTopo();
+			      tempTr->set_firstChild(Lsubtrees.at(i));
+			      tempTr->set_secondChild(Rsubtrees.at(j));
+			      tempTr->set_isRoot(1);
+			      tempTr->getFirstChild()->set_par(tempTr);
+			      tempTr->getSecondChild()->set_par(tempTr);
+			      // tempTr->assignPopulations2Tips(SeqPop);
+			      subtrees.push_back(tempTr);
+			  
+#ifdef DEBUG
+			      
+			      // std::cout <<"subtrees.size() = "<<subtrees.size() << "\n";
+			      // Rsubtrees.at(j)->print_coaltree();
+			 //     subtrees.at(subtrees.size()-1)->print_coaltree();
+			      
+			      
+			 // for(unsigned int k=0; k<subtrees.size(); k++)
+			 //   {
+			 //     std::cout <<"k="<<k<<" ";
+			 //     subtrees.at(k)->print_coaltree();
+			 //   }			 
+#endif //DEBUG		  
+			    }
+			}
+		      subtr->deleteTopo();		  
+		    }    
+		}
+	    }
+	}
+      
+      
+    }
+  
+}
+
+
+std::vector<nodeSimple*> nodeSimple::getSubtree(unsigned int subSize)
+{  
+  unsigned int size = getSize(); // the number of tips
+  
+#ifdef DEBUG
+    std::cout << "In nodeSimple::getSubtree()\n";
+  std::cout <<"\tsubSize = " << subSize <<" size of the give tree = "<< size <<".\n\t";
+   print_topo();
+   std::cout <<"\n";
+   std::cout <<"size = "<< size <<"\n";
+#endif //DEBUG
+  
+  std::vector<nodeSimple*> subtrees;
+ 
+  if(subSize > size)
+    {
+      std::cout <<"\n\nError in nodeSimple::getSubtree. 'subSize' should be smaller than the size of 'tree'.\n";
+      std::cout <<"'subSize' = " << subSize <<" and the size of 'tree' = "<< size <<"\n\n";
+    }
+  else
+    {
+      unsigned int leftsize = min(subSize,firstChild->getSize());
+      unsigned int rightsize = min(subSize-leftsize,secondChild->getSize());
+#ifdef DEBUG
+      //      std::cout <<"\tleftsize = "<< leftsize <<" rightsize = "<< rightsize <<"\n";
+#endif //DEBUG
+      for(int ll=leftsize; ll>=0; ll--)
+	{	  
+	  int rr=subSize-ll;
+#ifdef DEBUG
+	  // 	    std::cout <<"\tll = "<< ll <<" rr = "<< rr <<"\n";
+#endif //DEBUG
+	  if(rr<0 || rr> firstChild->getSize())
+	    ll=-1;
+	  else
+	    {
+	      nodeSimple* tempTr = new nodeSimple;
+	      tempTr->deepCopy(this);
+	      if(ll==0) // need to delete 'this'
+		{	      
+		  if(rr == tempTr->getSecondChild()->getSize())
+		    {
+		      nodeSimple* subtr = new nodeSimple;
+		      subtr->deepCopy(tempTr->getSecondChild());
+		      subtrees.push_back(subtr);
+		    }
+		  else
+		    {      
+		      std::vector<nodeSimple*> subsubtrees;
+		      subsubtrees = tempTr->getSecondChild()->getSubtree(rr);
+		      for(unsigned int i=0; i<subsubtrees.size(); i++)
+			{
+			  subtrees.push_back(subsubtrees.at(i));
+			}
+
+		    }
+		}
+	      else if(rr==0) // need to delete 'this'
+		{
+		  if(ll == tempTr->getFirstChild()->getSize())
+		    {
+		      nodeSimple* subtr = new nodeSimple;
+		      subtr->deepCopy(tempTr->getFirstChild());
+		      subtrees.push_back(subtr);      
+		    }
+		  else
+		    { 
+		      std::vector<nodeSimple*> subsubtrees;
+		      subsubtrees = tempTr->getFirstChild()->getSubtree(ll);
+		      for(unsigned int i=0; i<subsubtrees.size(); i++)
+			{
+			  subtrees.push_back(subsubtrees.at(i));
+			}
+		    }
+		}
+	      else if(ll>0 & rr>0) // need to keep 'this'
+		{
+		  std::vector<nodeSimple*> Lsubtrees;
+		  if(ll == firstChild->getSize())
+		    {
+		      nodeSimple* Ltree = new nodeSimple;
+		      Ltree->deepCopy(firstChild); //desc[0]->deepCopy_root();
+		      Lsubtrees.push_back(Ltree);		      
+		    }
+		  else if(ll < firstChild->getSize())
+		    {
+		      Lsubtrees = tempTr->getFirstChild()->getSubtree(ll);
+		    }
+		  std::vector<nodeSimple*> Rsubtrees;
+		  if(rr == secondChild->getSize())
+		    {
+		      nodeSimple* Rtree = new nodeSimple;
+		      Rtree -> deepCopy(secondChild); //= desc[1]->deepCopy_root();
+		      Rsubtrees.push_back(Rtree);		      
+		    }
+		  else if(rr < secondChild->getSize())// _tree())
+		    {		    		      
+		      Rsubtrees = tempTr->getSecondChild()->getSubtree(rr);
+		    }
+		  for(unsigned int i=0; i<Lsubtrees.size(); i++)
+		    {
+		      for(unsigned int j=0; j<Rsubtrees.size(); j++)
+			{
+			  nodeSimple* subsubtr = new nodeSimple;
+			  subsubtr->deepCopy(tempTr); //->deepCopy_root();
+			  subsubtr->getFirstChild()->deleteTopo();
+			  subsubtr->getSecondChild()->deleteTopo();
+			  subsubtr->set_firstChild(Lsubtrees.at(i));
+			  subsubtr->set_secondChild(Rsubtrees.at(j));
+			  subsubtr->getFirstChild()->set_par(subsubtr);
+			  subsubtr->getSecondChild()->set_par(subsubtr);
+			  subtrees.push_back(subsubtr);			  
+			}
+		    }	  
+		}
+	      tempTr->deleteTopo();
+	    }
+	}
+    }
+  #ifdef DEBUG
+   std::cout << "\n\tThere are " <<subtrees.size()<< " subtrees:\n";
+  for(unsigned int i=0; i<subtrees.size(); i++)
+    {
+      std::cout <<"\ti="<<i<<" ";
+      subtrees.at(i)->print_topo();
+    }
+  std::cout <<"\n\n";
+ 
+#endif // DEBUG
+  // this->deleteCoalTree(); // doublecheck the memory leak - fixit YC 3/10/2017
+  return subtrees;
+}
+
+
+
+
 // subtree of "subSize" of "tree"
 void Chain::getSubtree( unsigned int subSize, node* tree, unsigned int sampleID, unsigned int subLocusID)
 {

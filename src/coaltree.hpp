@@ -234,8 +234,9 @@ private:
 
 
 public:
-  void assignSize(unsigned int s){size = s;}
-  
+  void assignSize(unsigned int s){size = s;return;}
+
+  unsigned int get_isRoot(){return isRoot;}
   unsigned int get_isTip(){return isTip;}
   unsigned int getSize(){return size;}
   unsigned int getPopID(){return popID;}
@@ -247,13 +248,15 @@ public:
   unsigned int get_AreTipsFromSamePop(){return AreTipsFromSamePop;}
   double get_age(){return age;}
   int get_nodeLabel(){return nodeLabel;}
+  double get_popSize(){return popSize;}
+  unsigned int get_totalNumSeq(){return totalNumSeq;}
   // int get_nodeLabel(){return nodeLabel;}
   
   void convert_oldversion(node* tree);
   void convert(node* tree, std::list<double> coaltimes, unsigned int nLineages); // updated by YC 5/8/2014
   unsigned int sameTopo(node* tree);
   unsigned int sameTopo(nodeSimple* topo);
-	void computeSizes();
+  void computeSizes();
   std::string convert2Newick_recursion(std::list<double> coalT, std::vector<unsigned int> tipIDs, double parentAge);
   std::string convert2Newick(std::list<double> coalT, std::vector<unsigned int> tipIDs);
   std::string convert2Newick_originalTopo(std::vector<unsigned int> tipIDs);
@@ -261,49 +264,51 @@ public:
   std::string convert2Newick_topo();
   std::string convert2Newick_topo_root();
   void convertFromNewick(string topo, unsigned int root);
+  
+  void deleteTopo();
+  
+  
+  void print_topo();
+  void fileprint_topo(std::ofstream& fp);
+  void print_nodeMembers();
+  void print_labelsPopIDs();
+  void saveTree(ofstream& filename);
+  void saveNode(ofstream& filename);
+  void tree2string();
+  
+  int size_tree();
+  void maxTipID(int &maxID);
+  node* findNode_fromRoot(int tipid);
+  node* findNode(int tipid, int &found);
+  double get_minCoalTime(double coalT);
+  list<double> get_coalescentTimes(list<double> coalTimes);
+  Eigen::VectorXi get_crrState(int noPops);
+  void get_tipState(Eigen::VectorXi &state, int nPops);
+  
+  void deepCopy(nodeSimple* topo);
 
-	void deleteTopo();
+  void set_isRoot(unsigned int i){isRoot = i; return;}
+  void set_firstChild(nodeSimple* topo){firstChild = topo; return;}
+  void set_secondChild(nodeSimple* topo){secondChild = topo; return;}
+  void set_par(nodeSimple* topo){par = topo; return;}
 
-
-	void print_topo();
-	void fileprint_topo(std::ofstream& fp);
-	void print_nodeMembers();
-	void print_labelsPopIDs();
-	void saveTree(ofstream& filename);
-	void saveNode(ofstream& filename);
-	void tree2string();
-
-	int size_tree();
-	void maxTipID(int &maxID);
-	node* findNode_fromRoot(int tipid);
-	node* findNode(int tipid, int &found);
-	double get_minCoalTime(double coalT);
-	list<double> get_coalescentTimes(list<double> coalTimes);
-	Eigen::VectorXi get_crrState(int noPops);
-	void get_tipState(Eigen::VectorXi &state, int nPops);
-
-	//auto_ptr<node> deepCopy_root();
-	node* deepCopy();
-	node* deepCopy_root();
-	void deepCopy(node* copiedTree, node* tr);
-	void deepCopy_root(node* copiedTree, node* tr);
-	void deepCopy_obj(node copiedTree, node* tr);
-
-	void truncate(int &numNewTips, double time);
-	void truncateFirstCoalNode(int newtipID);
-	void updatePopIDs(popTree* poptree, double eventTime);
+  vector<nodeSimple*> getSubtree(unsigned int subSize);
+  
+  void truncate(int &numNewTips, double time);
+  void truncateFirstCoalNode(int newtipID);
+  void updatePopIDs(popTree* poptree, double eventTime);
 	node* get_truncatedTree();
-	void newLabels();
-
-	int moreNextState(int nPops);
-	void makeNULL_ancestorsLik();
-	void assignPopulations2Tips(locus lc);
+  void newLabels();
+  
+  int moreNextState(int nPops);
+  void makeNULL_ancestorsLik();
+  void assignPopulations2Tips(locus lc);
   //  void assignNodeLabel();
-	int assignPopulation(Eigen::VectorXi popAssign, int &idx, Eigen::VectorXi &state, int nPops);
+  int assignPopulation(Eigen::VectorXi popAssign, int &idx, Eigen::VectorXi &state, int nPops);
   void assign_age_nodeLabel_popSize(std::vector<double> coalT, std::vector<double> allPopSize, double splittingTime);
-	Eigen::VectorXi get_totalNumEachKind(int noPops);
-	void compute_totalCoalescentRate();
-	void compute_likMatrix_HKY(locus lc, double mutrate, double kappa);// Computing the likelihood
+  Eigen::VectorXi get_totalNumEachKind(int noPops);
+  void compute_totalCoalescentRate();
+  void compute_likMatrix_HKY(locus lc, double mutrate, double kappa);// Computing the likelihood
 	node* propose_coaltree(double slidedist); // propose a new tree from the current tree
 	double conditionalPr_singlePop(double popSize);
 	double logLikelihood_HKY (locus lc, double mutrate, double kappa);

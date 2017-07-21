@@ -1734,6 +1734,47 @@ node* node::findNode_fromRoot(int tipid)
 
 
 
+void nodeSimple::deepCopy(nodeSimple* topo)
+{
+  isRoot = topo->get_isRoot();
+  isTip = topo->get_isTip();
+  rank = topo->getRank();
+  size = topo->getSize();
+  popID = topo->getPopID();
+  nodePopID = topo->get_nodePopID();
+  age = topo->get_age();
+  popSize = topo->get_popSize();
+  nodeLabel = topo->get_nodeLabel();
+  totalNumSeq = topo->get_totalNumSeq();
+  
+  #ifdef DEBUG
+  /*
+  std::cout <<"isRoot = "<<isRoot
+	    <<" isTip = "<<isTip
+	    <<" rank  = "<< rank
+	    <<" size = "<< size
+	    <<" nodePopID = "<< nodePopID
+	    <<" age = "<< age
+	    <<" popSize = "<< popSize
+	    <<" nodeLabel = "<< nodeLabel
+	    <<"\n";
+  */
+#endif //DEBUG
+
+  if(isTip ==0)
+    {
+      firstChild = new nodeSimple;
+      firstChild->deepCopy(topo->getFirstChild());
+      secondChild = new nodeSimple;
+      secondChild->deepCopy(topo->getSecondChild());
+      firstChild->set_par(this);
+      secondChild->set_par(this);
+    }
+   
+  return;
+}
+
+
 node* node::deepCopy_root()
 {
   
@@ -2144,19 +2185,19 @@ void node_old::print_node()
  */
 void nodeSimple::print_topo()
 {
-	if(isTip == 1)
-		std::cout << popID ;
-	else if(isTip == 0)
-	{
-		std::cout << "(";
-		firstChild->print_topo();
-		std::cout << ",";
-		secondChild->print_topo();
-		std::cout << "):";
-		std::cout << rank;
-	}
-	if(isRoot ==1)
-		std::cout << ";\n";
+  if(isTip == 1)
+    std::cout << popID ;
+  else if(isTip == 0)
+    {
+      std::cout << "(";
+      firstChild->print_topo();
+      std::cout << ",";
+      secondChild->print_topo();
+      std::cout << "):";
+      std::cout << rank;
+    }
+  if(isRoot ==1)
+    std::cout << ";\n";
 }
 
 /**
