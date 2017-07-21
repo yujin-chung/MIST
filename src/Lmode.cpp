@@ -1503,8 +1503,9 @@ void Chain::compute_observedStates_fromSubtrees(unsigned int id_listTopo, unsign
 
 void Chain::compute_observedStates_fromTopo()
 {
-	// REMOVE
-  //  std::cout << "In Chain::compute_observedStates_fromTopo()\n";
+  #ifdef DEBUG
+  // std::cout << "In Chain::compute_observedStates_fromTopo()\n";
+#endif //DEBUG
 
   unsigned int numUniqTopo = list_trees.size();
 
@@ -1616,6 +1617,11 @@ Eigen::MatrixXd Chain::compute_stateSpaces_recursion(std::vector<unsigned int> f
 
 void Chain::compute_stateSpaces(unsigned int nPops)
 {
+  #ifdef DEBUG
+  std::cout <<"\nIn Chain::compute_stateSpaces(unsigned int nPops)\n";
+  std::cout <<"nPops = "<< nPops <<"\n";
+#endif// DEBUG
+  
   unsigned int numUniqTopo = list_trees.size();
   stateSpaces.resize(numUniqTopo);
   for(unsigned int i=0; i<numUniqTopo; i++)
@@ -1624,15 +1630,26 @@ void Chain::compute_stateSpaces(unsigned int nPops)
       stateSpaces.at(i).resize(nGeneCopies-1);
       for(unsigned int j=0; j<nGeneCopies-1; j++)
 	{
+	  #ifdef DEBUG
+	  std::cout <<"states_observed_freq.at(i).at(j) = "
+		    <<states_observed_freq.at(i).at(j)
+		    <<"\n";
+#endif //DEBUG
+	  
+	  stateSpaces.at(i).at(j) = compute_stateSpaces_recursion(states_observed_freq.at(i).at(j), nPops);
+	  /*
 	  if(i > 0 && j==0) /// the state spaces for the first time period (until the first coalescent event) are the same across all the trees
 	    stateSpaces.at(i).at(0) = stateSpaces.at(0).at(0);
 	  else
 	    {
 	      stateSpaces.at(i).at(j) = compute_stateSpaces_recursion(states_observed_freq.at(i).at(j), nPops);
 	    }
+	  */
 	  
 	  // REMOVE
-	  // std::cout << stateSpaces.at(i).at(j) <<"\n\n";
+	  #ifdef DEBUG
+	   std::cout << stateSpaces.at(i).at(j) <<"\n\n";
+#endif //DEBUG
 	}
     }
   
@@ -2162,7 +2179,9 @@ void Chain::initializeLmode(IM im, unsigned int crrProcID, unsigned int nProcs)
 
 void Chain::prepare_Lmode(popTree* poptree, IM im)
 {
-  // std::cout <<"In  Chain::prepare_Lmode()\n";
+  #ifdef DEBUG
+   std::cout <<"In  Chain::prepare_Lmode()\n";
+#endif //DEBUG
   // std::cout << "poptree->get_age() = " << poptree->get_age()<<"\n";
   if(im.get_migRateMax()!=0)
     {

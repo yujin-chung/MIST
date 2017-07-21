@@ -149,12 +149,14 @@ void Chain::read_newickTrees_partial(IM im)
   }
   inFile.close();
 
+  #ifdef DEBUG
   /*
   std::cout <<"word_counter = " << word_counter <<"\n";
   for(unsigned int i=0; i<word_counter; i++)
     std::cout << SeqPop.at(i) <<" ";
   std::cout <<"\n";
   */
+#endif //DEBUG
 
   string word;
   unsigned int iter = 0;
@@ -306,13 +308,7 @@ void Chain::read_newickTrees(IM im)
 
   ifstream inFile; 
   inFile.open(inputFile);
-  /*
-  for(unsigned int i=0; i<3; i++)
-    {
-      inFile >> word;
-    }
-  */
-  
+ 
   unsigned int count_nSample_perProcess = 0;
   while(locusID < n_loci)
     {
