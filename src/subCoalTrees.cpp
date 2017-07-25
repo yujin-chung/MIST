@@ -13,11 +13,9 @@ void Chain::get_subListTrees()
   std::cout <<"\nIn  Chain::get_subListTrees()\n";
 #endif // DEBUG
   
-  subtreeIDs.resize(nSubSample);
-  subcoalTimes.resize(nSubSample);
-  subtipIDs.resize(nSubSample);
   
-  std::vector<nodeSimple*> list_trees_full;
+  
+  std::vector<std::vector<nodeSimple*> > list_of_subtrees;  
   for(unsigned int i=0; i<list_trees.size(); i++)
     {
       unsigned int numTotalSeq = list_trees.at(i)->getSize();
@@ -182,12 +180,54 @@ void Chain::get_subListTrees()
 		}
 	    }
 	}
+      list_of_subtrees.push_back(subtrees);
       
-      
+      #ifdef DEBUG
+      for(unsigned int ii=0; ii<subtrees.size(); ii++)
+	subtrees.at(ii)->print_topo();
+      std::cout <<"\n";
+#endif // DEBUG
     }
   
+  subtreeIDs.resize(nSubSample);
+  subcoalTimes.resize(nSubSample);
+  subtipIDs.resize(nSubSample);
+  for(unsigned int id_sample =0; id_sample<nSubSample; id_sample++)
+    {
+      subtreeIDs.at(id_sample).resize(numSubLoci);
+      subcoalTimes.at(id_sample).resize(numSubLoci);
+      subtipIDs.at(id_sample).resize(numSubLoci);
+      for(unsigned int id_locus = 0; id_locus < numSubLoci; id_locus++)
+	{
+	   unsigned int trID = treeIDs.at(id_sample).at(id_locus);
+	   std::list<double> eventT = coalTimes.at(id_sample).at(id_locus);
+	   std::vector<unsigned int> tips = tipIDs.at(id_sample).at(id_locus);
+
+	   for(unsigned int id_stree =0; id_stree <list_of_subtrees.at(trID).size(); id_stree++)
+	     get_subCoalTimes_subTips(id_sample,id_locus, list_of_subtrees.at(trID).at(id_stree));
+	}
+    }
 }
 
+void Chain::get_subCoalTimes_subTips(unsigned int id_sample, unsigned int id_locus, nodeSimple* subtree)
+{
+  std::list<double> eventT = coalTimes.at(id_sample).at(id_locus);
+  std::vector<unsigned int> tips = tipIDs.at(id_sample).at(id_locus);
+  unsigned int trID = treeIDs.at(id_sample).at(id_locus);
+  nodeSimple *topo = list_trees.at(trID);
+
+  unsigned int foundAll = 0;
+  /*
+  while(foundAll==0)
+    {
+// 7/25/2017
+// Do I need a vector of nodeSimple? It seems to easy to extract coaltimes, tipID etc.
+
+    }
+  */
+  
+  return;
+}
 
 std::vector<nodeSimple*> nodeSimple::getSubtree(unsigned int subSize)
 {  
@@ -198,7 +238,7 @@ std::vector<nodeSimple*> nodeSimple::getSubtree(unsigned int subSize)
   std::cout <<"\tsubSize = " << subSize <<" size of the give tree = "<< size <<".\n\t";
    print_topo();
    std::cout <<"\n";
-   std::cout <<"size = "<< size <<"\n";
+   std::cout <<"\tsize = "<< size <<"\n";
 #endif //DEBUG
   
   std::vector<nodeSimple*> subtrees;
@@ -213,27 +253,36 @@ std::vector<nodeSimple*> nodeSimple::getSubtree(unsigned int subSize)
       unsigned int leftsize = min(subSize,firstChild->getSize());
       unsigned int rightsize = min(subSize-leftsize,secondChild->getSize());
 #ifdef DEBUG
-      //      std::cout <<"\tleftsize = "<< leftsize <<" rightsize = "<< rightsize <<"\n";
+      std::cout <<"\tleftsize = "<< leftsize <<" rightsize = "<< rightsize <<"\n";
 #endif //DEBUG
       for(int ll=leftsize; ll>=0; ll--)
 	{	  
 	  int rr=subSize-ll;
 #ifdef DEBUG
-	  // 	    std::cout <<"\tll = "<< ll <<" rr = "<< rr <<"\n";
+	    std::cout <<"\tll = "<< ll <<" rr = "<< rr <<"\n";
+	    std::cout <<"firstChild: "; firstChild->print_topo();
+	    std::cout <<" secondChild: "; secondChild->print_topo();
 #endif //DEBUG
-	  if(rr<0 || rr> firstChild->getSize())
+	  if(rr<0 || rr> secondChild->getSize())
 	    ll=-1;
 	  else
 	    {
 	      nodeSimple* tempTr = new nodeSimple;
 	      tempTr->deepCopy(this);
 	      if(ll==0) // need to delete 'this'
-		{	      
+		{
+		  #ifdef DEBUG
+		  std::cout <<" tempTr->getSecondChild()->getSize() = "<<  tempTr->getSecondChild()->getSize() <<"\n";
+#endif //DEBUG
 		  if(rr == tempTr->getSecondChild()->getSize())
 		    {
 		      nodeSimple* subtr = new nodeSimple;
 		      subtr->deepCopy(tempTr->getSecondChild());
 		      subtrees.push_back(subtr);
+		      #ifdef DEBUG
+		      std::cout <<"rr = " << rr <<"\t";
+		      subtr->print_topo();
+#endif //DEBUG
 		    }
 		  else
 		    {      

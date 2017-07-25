@@ -52,6 +52,7 @@ private :
  
   unsigned int totalNum_coalEvents; // Total number of coalescent events from all the loci.
   std::vector<nodeSimple*> list_trees;
+  std::vector<nodeSimple*> list_trees_full; // used only if subtrees are considered to analyzed the sampled trees from step 1
   std::vector<std::vector<unsigned int> > treeIDs; // shared across processes
   std::vector<node*> trees_atPrev;
   std::vector<std::vector<std::list<double> > > coalTimes;  // shared across processes
@@ -269,6 +270,8 @@ public:
   std::vector<long double> get_logExpectationOfCoalProbSquared(){return logExpectationOfCoalProbSquared;}
   unsigned int get_multiLocusSpecific_mutationRate(){return multiLocusSpecific_mutationRate;}
   std::vector<long double> get_partialLogJointCoalProb(){return partialLogJointCoalProb;}
+
+  void get_subCoalTimes_subTips(unsigned int id_sample, unsigned int id_locus, nodeSimple* subtree);
 
   
 
