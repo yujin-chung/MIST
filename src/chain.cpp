@@ -985,6 +985,9 @@ void Chain::read_listTrees()
       nodeSimple* topo = new nodeSimple;
       topo->convertFromNewick(topo_string,1);
       topo->computeSizes();
+      topo->set_totalNumSeq(topo->getSize());
+      topo->set_ancNodes();
+      
       list_trees.push_back(topo);
       line_counter++;
 

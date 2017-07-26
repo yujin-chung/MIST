@@ -227,11 +227,15 @@ private:
   /* If tip, nodeLabel = popID.
    */
 
+  
+  
   unsigned int totalNumSeq; // the total number of sequences or tips
   /* If a full tree is considered, this number is same as the size of tree.
      If a subtree is considered, this number is larger than the size of tree.
    */
 
+  std::vector<nodeSimple*> ancNodes;
+  // a vector of pointers to ancestral nodes, but not the root node.
 
 public:
   void assignSize(unsigned int s){size = s;return;}
@@ -284,6 +288,7 @@ public:
   list<double> get_coalescentTimes(list<double> coalTimes);
   Eigen::VectorXi get_crrState(int noPops);
   void get_tipState(Eigen::VectorXi &state, int nPops);
+  std::vector<nodeSimple*> get_ancNodes(){return ancNodes;}
   
   void deepCopy(nodeSimple* topo);
 
@@ -291,6 +296,9 @@ public:
   void set_firstChild(nodeSimple* topo){firstChild = topo; return;}
   void set_secondChild(nodeSimple* topo){secondChild = topo; return;}
   void set_par(nodeSimple* topo){par = topo; return;}
+  void set_totalNumSeq(unsigned int n){totalNumSeq = n; return;}
+  void set_ancNodes();
+  void set_ancNodes(nodeSimple* topo);
 
   vector<nodeSimple*> getSubtree(unsigned int subSize);
   

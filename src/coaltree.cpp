@@ -260,6 +260,32 @@ void node::convertFromNewick( string tree, unsigned int root)
 }
 
 
+void nodeSimple::set_ancNodes()
+{
+  #ifdef DEBUG
+  std::cout <<"In nodeSimple::set_nodes()\n";
+#endif //DEBUG
+  if(popID > size)
+    {
+      ancNodes.resize(size-2);
+      firstChild->set_ancNodes(this);
+      secondChild->set_ancNodes(this);
+    }
+  return;
+}
+
+void nodeSimple::set_ancNodes(nodeSimple* topo)
+{
+  unsigned int numTips = topo->getSize();
+  if(popID > numTips)
+    {
+      ancNodes.at(popID-numTips-1) = this;
+      firstChild->set_ancNodes(topo);
+      secondChild->set_ancNodes(topo);
+    }
+  return;
+}
+
 
 /***
  * Convert a string in newick form to a ranked topology.
@@ -1769,6 +1795,10 @@ void nodeSimple::deepCopy(nodeSimple* topo)
       secondChild->deepCopy(topo->getSecondChild());
       firstChild->set_par(this);
       secondChild->set_par(this);
+      ancNodes  = topo->get_ancNodes();
+      
+      // for(unsigned int i=0; i<topo->get_ancNodes().size(); i++)
+      // ancNodes.push_back(topo->get_ancNodes().at(i));
     }
    
   return;
