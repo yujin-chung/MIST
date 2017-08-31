@@ -254,6 +254,7 @@ public:
   int get_nodeLabel(){return nodeLabel;}
   double get_popSize(){return popSize;}
   unsigned int get_totalNumSeq(){return totalNumSeq;}
+  std::vector<nodeSimple*> get_ancNodes(){return ancNodes;}
   // int get_nodeLabel(){return nodeLabel;}
   
   void convert_oldversion(node* tree);
@@ -288,7 +289,6 @@ public:
   list<double> get_coalescentTimes(list<double> coalTimes);
   Eigen::VectorXi get_crrState(int noPops);
   void get_tipState(Eigen::VectorXi &state, int nPops);
-  std::vector<nodeSimple*> get_ancNodes(){return ancNodes;}
   
   void deepCopy(nodeSimple* topo);
 
@@ -298,7 +298,8 @@ public:
   void set_par(nodeSimple* topo){par = topo; return;}
   void set_totalNumSeq(unsigned int n){totalNumSeq = n; return;}
   void set_ancNodes();
-  void set_ancNodes(nodeSimple* topo);
+  void set_ancNodes(unsigned int loc, nodeSimple* topo){ancNodes.at(loc) = topo; return;}
+  void set_ancNodes(nodeSimple* root);
 
   vector<nodeSimple*> getSubtree(unsigned int subSize);
   

@@ -264,9 +264,10 @@ void nodeSimple::set_ancNodes()
 {
   #ifdef DEBUG
   std::cout <<"In nodeSimple::set_nodes()\n";
+  //  std::cout <<"popID = "<< popID <<" size = "<< size<<"\n";
 #endif //DEBUG
-  if(popID > size)
-    {
+  if(rank > size)
+    {      
       ancNodes.resize(size-2);
       firstChild->set_ancNodes(this);
       secondChild->set_ancNodes(this);
@@ -274,14 +275,15 @@ void nodeSimple::set_ancNodes()
   return;
 }
 
-void nodeSimple::set_ancNodes(nodeSimple* topo)
+void nodeSimple::set_ancNodes(nodeSimple* root)
 {
-  unsigned int numTips = topo->getSize();
-  if(popID > numTips)
+  unsigned int numTips = root->getSize();
+  if(rank > numTips)
     {
-      ancNodes.at(popID-numTips-1) = this;
-      firstChild->set_ancNodes(topo);
-      secondChild->set_ancNodes(topo);
+      root->set_ancNodes(rank-numTips-1, this);
+      firstChild->set_ancNodes(root);
+      secondChild->set_ancNodes(root);
+     
     }
   return;
 }
@@ -1795,8 +1797,10 @@ void nodeSimple::deepCopy(nodeSimple* topo)
       secondChild->deepCopy(topo->getSecondChild());
       firstChild->set_par(this);
       secondChild->set_par(this);
-      ancNodes  = topo->get_ancNodes();
-      
+     
+      if(topo->get_ancNodes().size() > 0)
+	ancNodes  = topo->get_ancNodes();
+     
       // for(unsigned int i=0; i<topo->get_ancNodes().size(); i++)
       // ancNodes.push_back(topo->get_ancNodes().at(i));
     }

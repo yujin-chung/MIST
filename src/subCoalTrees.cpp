@@ -25,6 +25,12 @@ void Chain::get_subListTrees()
       #ifdef DEBUG
       std::cout <<"i = "<< i <<" numTotalSeq = "<< numTotalSeq <<"\n";
       tree->print_topo();
+     
+      for(unsigned int ii=0; ii<tree->get_ancNodes().size(); ii++)
+	{
+	  std::cout <<"ancNodes.at(ii) = " << tree->get_ancNodes().at(ii)->getRank()  <<"\n";
+	}
+      
 #endif //DEBUG
       
       std::vector<nodeSimple*> subtrees;  
