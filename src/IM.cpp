@@ -59,7 +59,9 @@ unsigned int IM::initialization( int argc, char *argv[], unsigned int processID)
   checkpoint = 0;
   ancPop=1;
   Forest = 0;
+  sampleFromEachPop = 1;
   sizeCoalsubtree = 0;
+  eachSizeCoalsubtree = 0;
   sizePopsubtree = 0;
 
   locus locus_tmp;
@@ -105,12 +107,45 @@ unsigned int IM::initialization( int argc, char *argv[], unsigned int processID)
 	      {
 		counter++;
 		if(Forest==1)
-		  sizeCoalsubtree = atoi(argv[counter+1]);
+		  {
+		    char *pp = argv[counter+1];		    
+		    char subflag = toupper(pp[1]); // convert lowercase letter to uppercase
+		    switch(subflag)
+		      {
+			counter++;		
+		      case 'E':
+			sampleFromEachPop = 1;
+			eachSizeCoalsubtree = atoi(argv[counter+1]);
+			break;
+		      case 'A':
+			sampleFromEachPop = 0;
+			sizeCoalsubtree = atoi(argv[counter+1]);
+			break;
+		      default:
+			std::cout <<"Error: The sub-option of -f flag is either 'e' (subsampling from each population) or 'a' (considering all possible subsampling)\n";
+		      }
+		    std::cout <<"sampleFromEachPop = "<< sampleFromEachPop <<" eachSizeCoalsubtree = "<< eachSizeCoalsubtree <<" sizeCoalsubtree = "<< sizeCoalsubtree <<"\n";
+		  }
 		else if(Forest ==2)
 		  sizePopsubtree = atoi(argv[counter+1]);
 		else if(Forest == 3)
 		  {
-		    sizeCoalsubtree = atoi(argv[counter+1]);
+		    char *pp = argv[counter+1];		    
+		    char subflag = toupper(pp[1]); // convert lowercase letter to uppercase
+		    switch(subflag)
+		      {
+			counter++;			
+		      case 'E':
+			sampleFromEachPop = 1;
+			eachSizeCoalsubtree = atoi(argv[counter+1]);
+			break;
+		      case 'A':
+			sampleFromEachPop = 0;
+			sizeCoalsubtree = atoi(argv[counter+1]);
+			break;
+		      default:
+			std::cout <<"Error: The sub-option of -f flag is either 'e' (subsampling from each population) or 'a' (considering all possible subsampling)\n";			
+		      }
 		    counter++;
 		    sizePopsubtree = atoi(argv[counter+1]);
 		  }		  

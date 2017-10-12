@@ -208,6 +208,8 @@ private :
   // 1 if the forest of coalescent trees are condisered
   // 2 if the forest of population trees are considered
   // 3 if the forests of coalescent trees and population trees are considered.
+  unsigned int sampleFromEachPop; // 1 if users assign the number of tips in each population of subtree; 0 if users assign the size of subtrees (default = 1)
+  unsigned int eachSizeCoalsubtree; // the number of tips in each population of subtrees (default=0)
   unsigned int sizeCoalsubtree; // the size of subtrees of coalescent trees (default=0)
   unsigned int sizePopsubtree;  // the size of subtrees of population trees (default=0)
   unsigned int sizeForest; // the number of subtrees per locus per sample.
