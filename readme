@@ -17,7 +17,7 @@ This will compile program MIST.
 
 ** Note on Dec 7, 2017 **
 
-OpenMPI v2.x no longer builds the C++ bindings by default. Hence, you need flag --enable-mpi-cxx to build C++ bindings support in your OpenMPI.
+Open MPI v2.x no longer builds the C++ bindings by default. If you use Open MPI v2.x, you need flag --enable-mpi-cxx to build C++ bindings.
 
 ** Note on Aug 17, 2016 **
 std::binder2nd that Eigen uses is deprecated and you may have warning messages when it is compiled. You can temporarily get rid of the warnings with the -Wno-deprecated-declarations flag. For example, see below:
