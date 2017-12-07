@@ -15,7 +15,13 @@ mpicxx -std=c++0x *.cpp *.cc -o MIST
 This will compile program MIST. 
 
 
+** Note on Dec 7, 2017 **
+
+OpenMPI v2.x no longer builds the C++ bindings by default. Hence, you need flag --enable-mpi-cxx to build C++ bindings support in your OpenMPI.
+
 ** Note on Aug 17, 2016 **
 std::binder2nd that Eigen uses is deprecated and you may have warning messages when it is compiled. You can temporarily get rid of the warnings with the -Wno-deprecated-declarations flag. For example, see below:
 
 mpicxx -std=c++11 -Wno-deprecated-declarations *.cpp *.cc -o MIST
+
+
