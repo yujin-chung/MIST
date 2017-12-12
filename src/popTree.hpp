@@ -131,7 +131,7 @@ public:
   double find_popSize(unsigned int pop_ID);
   
   // void replacePara(unsigned int ancPop,Eigen::MatrixXd listPara);
-  void replacePara(Eigen::MatrixXd listPara);
+  int replacePara(Eigen::MatrixXd listPara);
 };
 
 

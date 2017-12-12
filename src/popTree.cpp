@@ -60,7 +60,7 @@ void popTree::deletePopTree()
 
 
 // void popTree::replacePara(unsigned int ancPop, Eigen::MatrixXd listPara)
-void popTree::replacePara(Eigen::MatrixXd listPara)
+int popTree::replacePara(Eigen::MatrixXd listPara)
 {
   populationSize = listPara(0,2);
   age = listPara(0,5);
@@ -82,7 +82,10 @@ void popTree::replacePara(Eigen::MatrixXd listPara)
       pops.at(0) = desc[0];
       desc[1]->replace_migRate(mig);
       desc[1]->replace_pop2mig(pops);
+      return 1;
     }
+  else if(age <0)
+    return -1;
   /*
   if(ancPop == 0) // island model (no ancestral population)
     {
@@ -128,8 +131,6 @@ void popTree::replacePara(Eigen::MatrixXd listPara)
     }
 
   */
-
-  return;
 }
 
 

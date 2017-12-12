@@ -508,25 +508,19 @@ int main (int argc, char *argv[])
 	  // coldCh.prepare_Lmode(poptree);
 	  clock_t clock_end = clock();
 	  
-	  /*
-	  if(currentid ==0)
-	    {
-	      double runTime_part = (double) (clock_end-clock_start_Lmode)/CLOCKS_PER_SEC;
-	      std::cout <<"Done in preparing L mode. (running time = "<< runTime_part <<" sec)\n";
-	    }
-	  */
     
 	  /// Marginal histograms of demographic parameters
 	  clock_t clock_start = clock();
 	  
 	  // Finding the maximum a poterior probability estimate
-	  if( MLmodes >= 2)
+	  if(MLmodes >= 2)
 	    {
 	      MaxPosterior MAPestimate;
 	      
-	      coldCh.prepare_Lmode(poptree, im);
+	      // if(im.get_migRateMax()!=0)
+		coldCh.prepare_Lmode(poptree, im);
 	      
-		// std::cout <<"Done with reading input files.\n";
+	      // std::cout <<"Done with reading input files.\n";
 
 	      if(MLmodes == 3)
 		{
@@ -576,18 +570,79 @@ int main (int argc, char *argv[])
 		{
 		  if(currentid == 0)
 		    {
-		      std::cout <<"\nPreparing the optimization (differential evolution)\n";
+		      std::cout <<"\nPreparing the optimization \n";
 		    }	  
-		  // coldCh.prepare_Lmode(poptree);
-		  MAPestimate.initiate(im, poptree, coldCh, numprocesses, currentid);	  
-		  if(currentid == 0)
+		  unsigned int optimizer = im.get_optimizer();
+		  if(optimizer==0) // Differential evolution
 		    {
-		      std::cout <<"\nStarting the optimization (differential evolution)\n";
+		      // coldCh.prepare_Lmode(poptree);
+		      std::cout << "Differential evolution\n\n";
+			MAPestimate.initiate(im, poptree, coldCh, numprocesses, currentid);	  
+		      if(currentid == 0)
+			{
+			  std::cout <<"\nStarting the optimization (differential evolution)\n";
+			}
+		      MAPestimate.DE(im, poptree, coldCh, numprocesses, currentid);	  
 		    }
-		  MAPestimate.DE(im, poptree, coldCh, numprocesses, currentid);	  
+		  else if(optimizer==1) // L-BFGS-B
+		    {
+		      std::cout <<"L-BFGS-B\n\n";
+
+		      MAPestimate.initiate(im, poptree, coldCh, numprocesses, currentid);
+		      unsigned int nPara = MAPestimate.get_nPara();
+		      const int DIM = 6; // MAPestimate.get_nPara();
+
+		      // create object
+		      computeLogJointDensity<double, DIM> f(MAPestimate, im, poptree, coldCh, numprocesses, currentid);
+
+		      // initialize
+		      computeLogJointDensity<double, DIM>::TVector paraVec = computeLogJointDensity<double, DIM>::TVector::Random();
+		      Eigen::MatrixXd para_initial = MAPestimate.get_para_atPrev();
+		      for(unsigned int i=0; i< DIM; i++)
+			paraVec(i) = para_initial(0,i);
+
+		      // non-negative parameters
+		      computeLogJointDensity<double, DIM>::TVector lowerB = computeLogJointDensity<double, DIM>::TVector::Zero();
+		      std::vector<double> priorsMax = MAPestimate.get_priorsMax();
+		      computeLogJointDensity<double, DIM>::TVector upperB = computeLogJointDensity<double, DIM>::TVector::Zero();
+		      for(unsigned int i=0; i< nPara; i++)
+			{
+			  lowerB(i) = 1e-10;
+			  upperB(i) = priorsMax.at(i);
+			}
+		      f.setLowerBound(lowerB);
+		      f.setUpperBound(upperB);
+		      
+
+		      double logJointDensity = 0;
+		      
+		      logJointDensity = (double) MAPestimate.computeLogJointDensity_mutationScalars_MPI_overSubLoci(para_initial, im, poptree, coldCh, numprocesses, currentid);
+
+//////////// xing, 11/29/2017, don't need to print result here, more commentted cout in optimization.hpp ///////////////////////
+//		      std::cout <<"logJointDensity = "<< logJointDensity <<"\n\n";
+
+		      // first check the given derivative 
+		      // there is output, if they are NOT similar to finite differences
+		      // bool probably_correct = f.checkGradient(paraVec);
+		      // std::cout << "probably_correct = " << probably_correct <<"\n";
+
+		      // optimization
+		      // init L-BFGS-B for box-constrained solving
+		      cppoptlib::LbfgsbSolver<computeLogJointDensity<double, DIM> > solver;
+		      // cppoptlib::BfgsSolver<computeLogJointDensity<double> > solver;
+		      solver.minimize(f, paraVec);
+		      
+		      std::cout << "result     " << paraVec << std::endl;
+		      
+		    }
+		  else
+		    {			       
+		      std::cout <<"Invalid optimizer indicator. See manual for option -O.\n\n";	     
+		    }
 		  if(currentid == 0)
 		    {
-		      std::cout <<"\n\nDone with the optimization (differential evolution)\n\n"; 
+		      std::cout <<"\n\nDone with the optimization \n\n"; 
+		    }
 		      
 		      // The total computing time for getting eigen values and eigen vectors
 		      /*
@@ -598,7 +653,7 @@ int main (int argc, char *argv[])
 				<<  MAPestimate.get_totalComputingTime_condiProb().count()/1000000  <<"(sec)\n";
 		      std::cout << "The function was called " << MAPestimate.get_totalNum_condiProbFunctionCalls() << " times\n";
 		      */
-		    }
+		    
 		}// END of if(MLmodes == 3)
 	  
 	      if(MLmodes==5)

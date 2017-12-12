@@ -158,7 +158,6 @@ private:
 
   unsigned int newickTreeFormat;
   char* newickTreeFileName;
-  char* SeqPopFileName;
 
   unsigned int multiLocusSpecific_mutationRate; // 0 if same mutation rates across loci; 1 if multilucs-specific mutation rate
   
@@ -168,6 +167,10 @@ private:
   unsigned int TreesWithMaxP;
   // 1 if trees with highest probabilities are selected 
   // 0 if some first trees are selected.
+
+  unsigned int optimizer;
+  // 0 if differential evolution
+  // 1 if L-BFGS-B solver
 
 
   unsigned int howOften_checkpoint;
@@ -206,7 +209,6 @@ public:
   unsigned int get_multiLocusSpecific_mutationRate(){return multiLocusSpecific_mutationRate;}
   unsigned int get_newickTreeFormat(){return newickTreeFormat;}
   char* get_newickTreeFileName(){return newickTreeFileName;}
-  char* get_SeqPopFileName(){return SeqPopFileName;}
   unsigned int get_nLoci() {return n_loci;}
   vector<locus> getLoci() {return loci;}
   unsigned int get_nGeneCopies() {return loci.at(0).get_nGeneCopies();}
@@ -227,6 +229,7 @@ public:
   double get_changeOfRatePoint(){return changeOfRatePoint;}
   unsigned int get_nTrees2compute(){return nTrees2compute;}
   unsigned int get_nParaVectors(){return nParaVectors;}
+  unsigned int get_optimizer(){return optimizer;}
   unsigned int get_checkpoint(){return checkpoint;}
   unsigned int get_howOften_checkpoint(){return howOften_checkpoint;}
 };

@@ -1,0 +1,48 @@
+--------------------------------------------------------------------------
+[[36836,1],0]: A high-performance Open MPI point-to-point messaging module
+was unable to find any relevant network interfaces:
+
+Module: OpenFabrics (openib)
+  Host: gpu-3-1
+
+Another transport will be used instead, although this may result in
+lower performance.
+--------------------------------------------------------------------------
+Welcome!
+
+Command line: ./MIST_0.0.05 -r 2 -n 2 4 -l 1000 -m 20 -q 20 -t 10 -h (1,2):3 -c 1 1 
+
+#############################
+  Step 2: model inference.
+#############################
+1 CPUs
+
+On process 0: reading 1000 sample from locusID = 0 to locusID = 1 (the number of loci = 2)
+Initialization of population tree....
+From	To	MigrationRate
+1	2	2.44005
+2	1	2.44005
+(1:5.87995,2:5.87995)10;
+Population sizes:
+10: 11.0639
+1: 11.0639
+2: 11.0639
+End of population tree initialization.
+
+
+Preparing the optimization (differential evolution)
+
+Starting the optimization (differential evolution)
+
+
+iter = 0: the largest log(posterior) = -23.7993, the smallest log(posterior) = -30.5591
+Estimates with the largest posterior: 5.59875 12.2459  4.8107
+........
+Maximum a posterior estimates:     2.33131 1.08163e-09     1.85962
+log(posterior density) = -21.9377 
+ at iteration 87
+
+
+Done with the optimization (differential evolution)
+
+The running time of step 2 is 932.11 seconds.

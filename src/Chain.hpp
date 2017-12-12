@@ -368,8 +368,6 @@ void update_mutationScaler_Kappa_usePriorsOnly(unsigned int id_crrIter, std::vec
 
   void collectAllUpdates(unsigned int savingID, unsigned int Lmode); // 1 process and 1 chain
   void collectAllUpdates_Lmode(unsigned int savingID);
-  void collectAllUpdates_bwProcs_Lmode();
-
 
   void AddTrees(std::vector<node*> trees);
   double logLikelihoodHKY(locus lc, int which_iteration, int which_locus);
@@ -404,8 +402,7 @@ void update_mutationScaler_Kappa_usePriorsOnly(unsigned int id_crrIter, std::vec
   void compute_observedStates_fromTopo();
   Eigen::MatrixXd compute_stateSpaces_recursion(std::vector<unsigned int> freq,unsigned int nPops);
   void compute_stateSpaces(unsigned int nPops);
-  unsigned int find_initialState(unsigned int nPops, unsigned int topoID);
-  unsigned int find_initialState(unsigned int nPops); // old version 7/18/2017
+  unsigned int find_initialState(unsigned int nPops);
   Eigen::MatrixXd find_minimumFreq_forNextTimePeriod(unsigned int id_samples,unsigned int  id_period);
   void compute_possiblePaths(unsigned int nPops);
   void compute_possiblePaths_nPossibleCoalEvents(unsigned int nPops);
@@ -442,7 +439,6 @@ void update_mutationScaler_Kappa_usePriorsOnly(unsigned int id_crrIter, std::vec
   void compute_partialJointPosteriorDensity_overSubLoci_ESS(popTree* poptree, IM im, unsigned int crrProcID, unsigned int nProcs);
   void compute_partialJointPosteriorDensity_mutationScalars_overSubLoci(popTree* poptree, IM im, unsigned int crrProcID, unsigned int nProcs);
   void compute_partialJointPosteriorDensity_overSubSample_selfNormalized(popTree* poptree, IM im, unsigned int crrProcID, unsigned int nProcs);
-  void find_print_theMaxHeightsTrees();
 
 	// old version
 	unsigned int compute_size_stateSpaces(unsigned int freq, unsigned int nPops);

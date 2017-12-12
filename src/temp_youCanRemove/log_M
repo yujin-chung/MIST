@@ -1,0 +1,26 @@
+Welcome!
+
+Command line: ./MIST_0.0.09_debug -r 1 -i alignments_IMIS_rep1 -l 2 -b 100 -n 5 
+
+Reading the data file, 'alignments_IMIS_rep1'...
+4 gene copies and 10 loci.
+#############################
+#  Markov Chain Monte Carlo #
+#############################
+
+Settings:
+	1 CPUs and 1 chains in total
+
+Starting MCMC simulation...
+
+Burn-in: 100 iterations 
+Sampling: 2 trees 
+Thinning: 5 iterations.
+
+Tree acceptance rate (%)
+locusID = 0-9:  40.566 46.2264 55.6604 49.0566 30.1887 48.1132 63.2075 56.6038 48.1132 49.0566
+
+The end of MCMC simulation
+
+
+The running time of step 1 (MCMC) is 0.286154 seconds.

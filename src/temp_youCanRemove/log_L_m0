@@ -1,0 +1,36 @@
+-------------------------------------------------------------------------
+[[36315,1],0]: A high-performance Open MPI point-to-point messaging module
+was unable to find any relevant network interfaces:
+
+Module: OpenFabrics (openib)
+  Host: gpu-3-1
+
+Another transport will be used instead, although this may result in
+lower performance.
+--------------------------------------------------------------------------
+Welcome!
+
+Command line: ./MIST_0.0.05 -r 2 -n 2 4 -l 1000 -m 0 -q 20 -t 10 -h (1,2):3 -c 1 1 
+
+#############################
+  Step 2: model inference.
+#############################
+1 CPUs
+
+On process 0: reading 1000 sample from locusID = 0 to locusID = 1 (the number of loci = 2)
+Initialization of population tree....
+From	To	MigrationRate
+1	2	0
+2	1	0
+(1:6.8221,2:6.8221)10;
+Population sizes:
+10: 6.23243
+1: 6.23243
+2: 6.23243
+End of population tree initialization.
+
+
+Preparing the optimization (differential evolution)
+--------------------------------------------------------------------------
+mpirun noticed that process rank 0 with PID 32457 on node gpu-3-1 exited on signal 6 (Aborted).
+--------------------------------------------------------------------------

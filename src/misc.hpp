@@ -7,7 +7,6 @@
 #include <vector>
 #include <valarray>
 #include "mt.h"
-#include <unistd.h>
 
 extern MersenneTwister mt;
 
@@ -74,13 +73,6 @@ unsigned int factorial(unsigned int x);
 double factorial(double x);
 double logfactorial(double x);
 int choose(int n, int k);
-
-
-/**  YC 10/19/2016
- *   To check if a file exists   **/
-inline bool file_exist(const std::string& name) {
-  return ( access( name.c_str(), F_OK ) != -1 );
-};
 
 #endif
 

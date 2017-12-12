@@ -1,0 +1,24 @@
+Welcome!
+
+Command line: ./MIST_0.0.06 -r 2 -n 2 4 -l 1000 -m 0 -q 20 -t 10 -h (1,2):3 -c 1 1 
+
+#############################
+  Step 2: model inference.
+#############################
+1 CPUs
+
+On process 0: reading 1000 sample from locusID = 0 to locusID = 1 (the number of loci = 2)
+Initialization of population tree....
+From	To	MigrationRate
+1	2	0
+2	1	0
+(1:4.89084,2:4.89084)10;
+Population sizes:
+10: 5.19034
+1: 5.19034
+2: 5.19034
+End of population tree initialization.
+
+
+Preparing the optimization (differential evolution)
+nPara = 2

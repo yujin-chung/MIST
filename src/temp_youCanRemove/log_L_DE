@@ -1,0 +1,44 @@
+Welcome!
+
+Command line: ./MIST_0.0.09 -r 2 -n 10 4 -l 1 -m 100 -q 1 -t 0.02 -h (1,2):3; -o 0 
+
+#############################
+  Step 2: model inference.
+#############################
+1 CPUs
+
+On process 0: reading 1 sample from locusID = 0 to locusID = 9 (the number of loci = 10)
+Initialization of population tree....
+From	To	MigrationRate
+1	2	20.7129
+2	1	95.5619
+(1:0.0113748,2:0.0113748)3;
+Population sizes:
+3: 0.938337
+1: 0.29303
+2: 0.501208
+End of population tree initialization.
+
+
+Preparing the optimization 
+Differential evolution
+
+
+Starting the optimization (differential evolution)
+
+
+iter = 0: the largest log(posterior) = -4.72776, the smallest log(posterior) = -1290.65
+Estimates with the largest posterior:   0.986619   0.890055   0.681057    95.8751    77.3729 0.00729829
+.........
+
+iter = 100: the largest log(posterior) = -2.69771, the smallest log(posterior) = -2.69822
+Estimates with the largest posterior:    0.999746    0.178806    0.885199 2.14094e-07   0.0114382   0.0199984
+.
+Maximum a posterior estimates:    0.999978    0.180025    0.882306 5.86579e-05 0.000101545   0.0199999
+log(posterior density) = -2.69766 
+ at iteration 118
+
+
+Done with the optimization 
+
+The running time of step 2 is 103.842 seconds.

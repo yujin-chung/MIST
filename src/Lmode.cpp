@@ -17,26 +17,6 @@
 #include "Eigen/Dense"
 #include <complex>
 
-void node::assignPopulations2Tips(std::vector<unsigned int> SeqPop)
-{
-  if(isTip)
-    {      
-      // stringstream convert(lc.popNames.at(tipID-1));
-      // convert >> popID;
-      // label = popID-1;
-      popID = SeqPop.at(tipID-1);
-      label = popID-1;
-
-      // std::cout <<"tipID = " << tipID <<"\n";
-      // std::cout <<"label = " << label <<"\n";
-    }
-  else
-    {
-      desc[0]->assignPopulations2Tips(SeqPop);
-      desc[1]->assignPopulations2Tips(SeqPop);
-    }
-}
-
 void node::assignPopulations2Tips(locus lc)
 {
 	if(isTip)
@@ -1504,10 +1484,9 @@ void Chain::compute_observedStates_fromSubtrees(unsigned int id_listTopo, unsign
 void Chain::compute_observedStates_fromTopo()
 {
 	// REMOVE
-  //  std::cout << "In Chain::compute_observedStates_fromTopo()\n";
+  // std::cout << "In Chain::compute_observedStates_fromTopo()\n";
 
   unsigned int numUniqTopo = list_trees.size();
-
   states_observed.resize(numUniqTopo);
   states_observed_freq.resize(numUniqTopo);
   nKinds_lineages.resize(numUniqTopo);
@@ -1641,70 +1620,6 @@ void Chain::compute_stateSpaces(unsigned int nPops)
   return;
 }
 
-/***
-  * Find the initial state of a tree topology.
-  * Note that the initial state should be the same across tree topologies.
-  */
- unsigned int Chain::find_initialState(unsigned int nPops, unsigned int topoID)
- {
-   unsigned int id_initial = 0;
-  	// REMOVE
- 	/*
- 	std::cout << "in Chain::find_initialState()\n";
-	//std::cout << stateSpaces.at(0).at(0) <<"\n\n";
- 	std::cout << "state freq\n";
- 	for(unsigned int i=0; i<states_observed_freq.at(0).at(0).size(); i++)
- 	{
- 		std::cout << states_observed.at(0).at(0).at(i) << " ";
- 		std::cout << states_observed_freq.at(0).at(0).at(i) << "\n";
- 	}
- 	std::cout << "\n";
- */
- 
-   unsigned int nKinds = states_observed_freq.at(topoID).at(0).size();
-  /*
-  if(nKinds != nPops)
-    {
-       std::cout << "\n *** Error in Chain::find_initialState() ***\n"
- "The number of populations (nPops) and the number of kinds of lineages (nKinds)"
- 	"should be the same, but nPops = " << nPops << " and nKinds = " << nKinds <<".\n\n";
-    }
-  */
-  Eigen::MatrixXd initialState(1,nKinds*nPops);
-   initialState.setZero();
-  for(unsigned int i=0; i<nKinds; i++)
-    initialState(0,i*nKinds+i) = states_observed_freq.at(topoID).at(0).at(i);
-   
- 
-    unsigned int found = 0;
-  unsigned int count = 0;
-  while(count<stateSpaces.at(topoID).at(0).rows() && found ==0 )
-    {
-       if(stateSpaces.at(topoID).at(0).row(count) == initialState)
-	 {
- 	  id_initial = count;
-   found = 1;
-   
- 	  // REMOVE
- 	  //std::cout << stateSpaces.at(0).at(0).row(count) <<"\n";
-   //std::cout << "id_initial = " << id_initial <<"\n";
- 	}
-      count++;
-     }
-   
-  // REMOVE
-   /*
-   std::cout << "The initial state is ";
-   std::cout << initialState << "\n";
-  std::cout << "id_initial = " << id_initial <<"\n";
-   */
-   
-   return id_initial;
- }
- 
- // This function below does not work when subtrees are considered or
- // when the sampling schemes of loci are different
- // BUG found 7/18/2017
 /***
  * Find the initial state of a tree topology.
  * Note that the initial state should be the same across tree topologies.
@@ -2160,7 +2075,6 @@ void Chain::initializeLmode(IM im, unsigned int crrProcID, unsigned int nProcs)
 
 void Chain::prepare_Lmode(popTree* poptree, IM im)
 {
-  // std::cout <<"In  Chain::prepare_Lmode()\n";
   // std::cout << "poptree->get_age() = " << poptree->get_age()<<"\n";
   if(im.get_migRateMax()!=0)
     {
@@ -2306,11 +2220,9 @@ void Chain::compute_possiblePaths_nPossibleCoalEvents(unsigned int nPops)
 	}
     }
   
-  //  unsigned int id_initialState = find_initialState(nPops); // bug fixed 7/18/2017
-  unsigned int id_initialState = 0;
+  unsigned int id_initialState = find_initialState(nPops);
   for(unsigned int i=0; i<numUniqTopo; i++)
     {
-      id_initialState = find_initialState(nPops,i);
       // REMOVE
       /*
       std::cout << "tree is ";
@@ -2671,8 +2583,8 @@ void Chain::compute_eigenValuesVectors_rateMat(popTree* poptree)
 
 void Chain::compute_coefficientsOfElementsInTransitionRateMat(unsigned int nPops)
 {	
-  // std::cout << "Chain::compute_coefficientsOfElementsInTransitionRateMat()\n";
-  // std::cout << "nPops = "<< nPops <<"\n";
+  //std::cout << "Chain::compute_coefficientsOfElementsInTransitionRateMat()\n";
+  //std::cout << "nPops = "<< nPops <<"\n";
 
   // FIXME YC 5/9/2014
   // It works for up to 2 population
@@ -2697,15 +2609,14 @@ void Chain::compute_coefficientsOfElementsInTransitionRateMat(unsigned int nPops
   */
 
   unsigned int numUniqTopo = stateSpaces.size(); // list_trees.size();
-  // std::cout <<"numUniqTopo = "<< numUniqTopo <<"\n";
-
-
+  
+  // Qeigen.resize(numUniqTopo);
   coeff4TransitionRateMat.resize(numUniqTopo);
-
+  // transitionRateMat.resize(numUniqTopo);
   for(unsigned int i=0; i<numUniqTopo; i++)
     {
       unsigned int nGeneCopies = stateSpaces.at(i).size()+1; //list_trees.at(i)->getSize();
-
+      // Qeigen.at(i).resize(nGeneCopies-1);
       coeff4TransitionRateMat.at(i).resize(nGeneCopies-1);
       for(unsigned int j=0; j<nGeneCopies-1; j++)
 	{
@@ -2714,6 +2625,17 @@ void Chain::compute_coefficientsOfElementsInTransitionRateMat(unsigned int nPops
 	  
 	  coeff4TransitionRateMat.at(i).at(j).resize(4);
 	  
+	  // Qeigen.at(i).at(j).resize(3);
+	  /*
+	  Eigen::MatrixXd mat_pop1(n_states+1,n_states+1);
+	  mat_pop1.setZero();
+	  Eigen::MatrixXd mat_pop2(n_states+1,n_states+1);
+	  mat_pop2.setZero();
+	  Eigen::MatrixXd mat_mig1(n_states+1,n_states+1);
+	  mat_mig1.setZero();
+	  Eigen::MatrixXd mat_mig2(n_states+1,n_states+1);
+	  mat_mig22.setZero();
+	  */
 	  for(unsigned int r=0; r< 4; r++)
 	    {
 	      coeff4TransitionRateMat.at(i).at(j).at(r).resize(n_states+1,n_states+1);
@@ -3034,10 +2956,8 @@ void Chain::compute_eigenValuesVectors_subMatOfEigenVectors_MPI(popTree* poptree
       
   topoID_end = topoID_start + subNumTopo-1;
 
-  /*
-  std::cout << "cpuID = " << cpuID 
-	    << " numUniqTopo = "<< numUniqTopo 
-	    << " topoID_start = " << topoID_start <<" topoID_end = " << topoID_end 
+  /*  
+  std::cout << "cpuID = " << cpuID << " topoID_start = " << topoID_start <<" topoID_end = " << topoID_end 
 	    << " subNumTopo = "  << subNumTopo
 	    <<"\n";
   */
@@ -4064,6 +3984,7 @@ void nodeSimple::assign_age_nodeLabel_popSize(std::vector<double> coalT, std::ve
     age =0;
   else
     age = coalT.at(rank-1-nGeneCopies);
+
   // std::cout <<"rank = "<< rank << " age = "<< age<<"\n";
 
   // determine 'nodeLabel' 
@@ -4190,6 +4111,7 @@ long double nodeSimple::compute_logProb_zeroMig(std::vector<double> coalT, std::
   std::cout <<"nodeLabel = " << nodeLabel <<"\n";
   std::cout <<"popSize = "<< popSize <<"\n";
   */
+
   unsigned int nEvents = 0;
   if(nodeLabel==-1)
     {
@@ -4203,12 +4125,12 @@ long double nodeSimple::compute_logProb_zeroMig(std::vector<double> coalT, std::
       for(unsigned int i=0; i<allPopSize.size(); i++)
 	{
 	  unsigned int maxNumLin = compute_maxNumLin(i+1);
-	  // std::cout <<"popID = "<< i+1<< " maxNumLin = "<< maxNumLin <<"\n";
+	  //std::cout <<"popID = "<< i+1<< " maxNumLin = "<< maxNumLin <<"\n";
 	  std::list<double> intervalCoalT;
 	  intervalCoalT = compute_intervalCoalT(i+1, splittingTime, intervalCoalT);
 	  intervalCoalT.sort(); // increasing order
 	  unsigned int nCoal = intervalCoalT.size();
-	  // std::cout <<"intervalCoalT.size = "<< intervalCoalT.size()<<"\n";
+	  //std::cout <<"intervalCoalT.size = "<< intervalCoalT.size()<<"\n";
 	  
 	  if(nCoal==0)
 	    logProb += (long double) -1*maxNumLin*(maxNumLin-1)*splittingTime/allPopSize.at(i);
@@ -4226,8 +4148,10 @@ long double nodeSimple::compute_logProb_zeroMig(std::vector<double> coalT, std::
 		      logProb += log(2/allPopSize.at(i)) - nLin*(nLin-1)*waitingTime/allPopSize.at(i);
 		      prevT = *iter;
 		      nLin--;
+		      //std::cout <<"waitingTime = " << waitingTime <<"\n";
 		    }	
 		  waitingTime = splittingTime -prevT;
+		  // std::cout <<"waitingTime = " << waitingTime <<"\n";
 		  logProb += -nLin*(nLin-1)*waitingTime/allPopSize.at(i);	  
 		  
 		}
@@ -4240,6 +4164,7 @@ long double nodeSimple::compute_logProb_zeroMig(std::vector<double> coalT, std::
 		  for(iter; iter!=intervalCoalT.end(); iter++)
 		    {
 		      waitingTime = *iter -prevT;
+		      // std::cout <<"waitingTime = " << waitingTime <<"\n";
 		      logProb += log(2/allPopSize.at(i)) - nLin*(nLin-1)*waitingTime/allPopSize.at(i);
 		      prevT = *iter;
 		      nLin--;
@@ -4247,7 +4172,7 @@ long double nodeSimple::compute_logProb_zeroMig(std::vector<double> coalT, std::
 		    }			  
 		}
 	    }
-	  // std::cout << "logProb = " << logProb <<"\n";
+	  //  std::cout << "logProb = " << logProb <<"\n";
 	} // END of for(unsigned int i=0; i<allPopSize.size(); i++)  
     }
 
@@ -4264,6 +4189,8 @@ long double Chain::compute_logConditionalProb_zeroMig(unsigned int id_sample, un
       std::cout <<"tmp_label = " <<tmp<<"\n";
     }
   */
+  // std::cout <<"\nid_sample = "<< id_sample <<" id_locus = "<< id_locus <<"\n";
+
   unsigned int nPops = poptree->size();
   unsigned int nTotalPops = nPops*(nPops+1)/2;
   std::vector<double> popSize;
@@ -6265,16 +6192,20 @@ void Chain::compute_partialJointPosteriorDensity_overSubLoci_ESS(popTree* poptre
 // YC 5/11/2016
 void Chain::compute_partialJointPosteriorDensity_overSubLoci(popTree* poptree, IM im, unsigned int crrProcID, unsigned int nProcs)
 { 
-  // std::cout <<"In compute_partialJointPosteriorDensity_overSubLoci()\n";
   
   std::chrono::high_resolution_clock::time_point start_t, end_t;
   
   double migRateMax = im.get_migRateMax();
 
-  {
-    if(poptree->get_age()>0)
-      compute_eigenValuesVectors_subMatOfEigenVectors_MPI(poptree);
-  }
+  // if(migRateMax !=0) // not a single population
+    {
+      if(poptree->get_age()>0)
+	compute_eigenValuesVectors_subMatOfEigenVectors_MPI(poptree);
+    }
+  //  else if(migRateMax==0)
+  //  {
+  //    compute_summaryOfCoalTrees(poptree);
+  //  }
 
 
 
@@ -6288,6 +6219,8 @@ void Chain::compute_partialJointPosteriorDensity_overSubLoci(popTree* poptree, I
 
   logExpectationOfCoalProb.resize(numSubLoci);
 
+  // std::cout << "numSubLoci = " << numSubLoci <<"\n";
+  // std::cout << "nSubSample = " << nSubSample <<"\n";
 
   for(unsigned int j=0; j<numSubLoci; j++)
     {
@@ -6333,7 +6266,7 @@ void Chain::compute_partialJointPosteriorDensity_overSubLoci(popTree* poptree, I
 	      else
 		{
 		  eachLogProb = compute_logConditionalProb_zeroMig(i,j,poptree,crrProcID);
-		  logCondPr.at(i) = eachLogProb-logPriorTree;
+		  logCondPr.at(i) = eachLogProb -logPriorTree;
 		}
 
 	      // std::cout <<"eachLogProb = "<<eachLogProb <<"\n";

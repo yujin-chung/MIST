@@ -4,18 +4,29 @@
 #include <iostream>
 #include <math.h>
 #include "optimization.hpp"
+#include "cppoptlib/solver/lbfgsbsolver.h"
 
 
 
 void MaxPosterior::initiate(IM im, popTree* poptree, Chain coldCh, unsigned int nProcs, unsigned int crr_procID)
 {
-  //-- Settings for differential evoltuion --//
-  nParaVectors = 30;
-  nIters = 1000;
-  F = 0.8;
-  CR = 0.9;
+  optimizer = im.get_optimizer();
 
-  nParaVectors = im.get_nParaVectors();
+  //-- Settings for differential evoltuion --//
+  nIters = 1000;
+  if(optimizer==0) // differential evolution
+    {
+      nParaVectors = 30;
+      F = 0.8;
+      CR = 0.9;   
+    }
+  else if(optimizer==1) // L-BFGS-B
+    {
+      nParaVectors = 1;
+    }
+
+  if(optimizer==0) // DE
+    nParaVectors = im.get_nParaVectors();
 
   //  std::chrono::microseconds initial(0);
   // totalComputingTime_eigen = initial;
@@ -99,6 +110,12 @@ void MaxPosterior::initiate(IM im, popTree* poptree, Chain coldCh, unsigned int 
       }
     }
 
+  /*
+  if(crr_procID == 0)
+    marginals.initiate_forDE(im, nPara, priorsMax);
+  */
+  // coldCh.prepare_Lmode(poptree);
+
 
   // Initialize "para_atPrev"
   for(unsigned int i=0; i<nParaVectors; i++)
@@ -130,8 +147,6 @@ void MaxPosterior::initiate(IM im, popTree* poptree, Chain coldCh, unsigned int 
 		    << checkpoint <<".\n\n";
 	}
     }
-
-
 
   // Computing the posterior of para_atPrev
   for(unsigned int i=0; i<nParaVectors; i++)
@@ -186,7 +201,6 @@ void MaxPosterior::initiate(IM im, popTree* poptree, Chain coldCh, unsigned int 
      
       unsigned int lociInParallel = im.get_lociInParallel();
 
-
       if(lociInParallel ==1)
 	{
 	  if(coldCh.get_multiLocusSpecific_mutationRate() ==1) // variable mutation rate scalars
@@ -212,6 +226,28 @@ void MaxPosterior::initiate(IM im, popTree* poptree, Chain coldCh, unsigned int 
   return;
 }
 
+
+
+/*
+template <> double computeLogJointDensity<double, 6>::computeLogJointDensity_mutationScalars_MPI_overSubLoci(TVector paraVec, MaxPosterior MAPestimate, IM im, popTree* poptree, Chain coldCh, unsigned int nProcs, unsigned int crr_procID)
+{
+  double logJointDensity = 0;
+
+  Eigen::MatrixXd para;
+  para.resize(1, MAPestimate.get_nPara());
+  for(unsigned int i=0; i< paraVec.size(); i++)
+    para(0,i) = paraVec(i);
+
+  logJointDensity =  -1 * (double) MAPestimate.computeLogJointDensity_mutationScalars_MPI_overSubLoci(para, im, poptree, coldCh, nProcs, crr_procID);  	
+
+  // std::cout <<" paraVect = " << paraVec <<"\n";
+  std::cout <<"para = "<< para <<"\n";
+  std::cout <<" logJointDensity = "<< logJointDensity <<"\n\n";
+  
+
+  return logJointDensity;
+}
+*/
 
 void MaxPosterior::read_checkpoint()
 {
@@ -726,48 +762,48 @@ long double MaxPosterior::computeLogJointDensity_MPI_overSubLoci_ESS(Eigen::Matr
 // 'demographicPara' is a 1x6 matrix.
 long double MaxPosterior::computeLogJointDensity_MPI_overSubLoci(Eigen::MatrixXd demographicPara, IM im, popTree* poptree, Chain coldCh, unsigned int nProcs, unsigned int crr_procID)
 {
-  // std::cout <<"In computeLogJointDensity_MPI_overSubLoci()\n";
 
-  poptree->replacePara(demographicPara);
-
-  coldCh.compute_partialJointPosteriorDensity_overSubLoci(poptree, im, crr_procID, nProcs);
-  std::vector<long double> logExpectationOfEachCoalProb = coldCh.get_logExpectationOfCoalProb();
-  unsigned int numSubLoci = coldCh.getNumSubLoci();
-
-  // std::cout <<"numSubLoci ="<<numSubLoci <<"\n";
-
-  long double posterior = 1;
-  if(numSubLoci != logExpectationOfEachCoalProb.size())
+  int valid = poptree->replacePara(demographicPara);
+  if(valid == -1)
+    return 1*numeric_limits<double>::infinity();
+  else if(valid == 1)
     {
-      std::cout << "** Error In MaxPosterior::computeJointDensity_MPI_overSubSample() **\n";
-      std::cout << "numSubLoci = " << numSubLoci 
-		<< " expectationOfEachCoalProb.size() = " << logExpectationOfEachCoalProb.size() <<"\n\n";
+
+      coldCh.compute_partialJointPosteriorDensity_overSubLoci(poptree, im, crr_procID, nProcs);
+      std::vector<long double> logExpectationOfEachCoalProb = coldCh.get_logExpectationOfCoalProb();
+      unsigned int numSubLoci = coldCh.getNumSubLoci();
+      
+      long double posterior = 1;
+      if(numSubLoci != logExpectationOfEachCoalProb.size())
+	{
+	  std::cout << "** Error In MaxPosterior::computeJointDensity_MPI_overSubSample() **\n";
+	  std::cout << "numSubLoci = " << numSubLoci 
+		    << " expectationOfEachCoalProb.size() = " << logExpectationOfEachCoalProb.size() <<"\n\n";
+	}
+      long double local_logPosterior_subLoci =0;
+      long double global_logPosterior = 0;
+      for(unsigned int lc=0; lc< numSubLoci; lc++)
+	{
+	  local_logPosterior_subLoci += logExpectationOfEachCoalProb.at(lc);
+	  // std::cout<< "lc = " << lc <<" local_logPosterior_subLoci = "<< local_logPosterior_subLoci <<"\n";
+	}
+      // std::cout << "crr_procID=" << crr_procID << " local_logPosterior_subLoci = " << local_logPosterior_subLoci <<"\n";
+      
+      MPI::COMM_WORLD.Barrier();
+      MPI::COMM_WORLD.Allreduce(&local_logPosterior_subLoci, &global_logPosterior, 1, MPI_LONG_DOUBLE, MPI_SUM);
+      MPI::COMM_WORLD.Barrier();
+      
+      long double logPosterior = 0;
+      if(crr_procID ==0)
+	{	
+	  Eigen::Vector3d paraMax = im.get_paraMax();
+	  double priorPopTree = poptree->computeJointPrior(paraMax);
+	  //posterior = exp(global_logPosterior+log(priorPopTree));
+	  logPosterior = global_logPosterior; //  +log(priorPopTree);
+	  // std::cout <<"log(priorPopTree) = " << log(priorPopTree) <<"\n";
+	} 
+      return logPosterior;
     }
-  long double local_logPosterior_subLoci =0;
-  long double global_logPosterior = 0;
-  for(unsigned int lc=0; lc< numSubLoci; lc++)
-    {
-      local_logPosterior_subLoci += logExpectationOfEachCoalProb.at(lc);
-    }
-  
-  MPI::COMM_WORLD.Barrier();
-  MPI::COMM_WORLD.Allreduce(&local_logPosterior_subLoci, &global_logPosterior, 1, MPI_LONG_DOUBLE, MPI_SUM);
-  MPI::COMM_WORLD.Barrier();
-  
-  long double logPosterior = 0;
-  if(crr_procID ==0)
-    {	
-      Eigen::Vector3d paraMax = im.get_paraMax();
-      double priorPopTree = poptree->computeJointPrior(paraMax);
-      //posterior = exp(global_logPosterior+log(priorPopTree));
-      logPosterior = global_logPosterior; //  +log(priorPopTree);
-      // std::cout <<"log(priorPopTree) = " << log(priorPopTree) <<"\n";
-    }
-  
- 
-  
-  // std::cout << "crr_procID=" << crr_procID << " logPosterior = " << logPosterior <<"\n";    
-  return logPosterior;
 }
 
 
@@ -776,98 +812,90 @@ long double MaxPosterior::computeLogJointDensity_MPI_overSubLoci(Eigen::MatrixXd
 // 'demographicPara' is a 1x6 matrix.
 long double MaxPosterior::computeLogJointDensity_mutationScalars_MPI_overSubLoci(Eigen::MatrixXd demographicPara, IM im, popTree* poptree, Chain coldCh, unsigned int nProcs, unsigned int crr_procID)
 {
-  poptree->replacePara(demographicPara);
 
-  coldCh.compute_partialJointPosteriorDensity_mutationScalars_overSubLoci(poptree, im, crr_procID, nProcs);
-
-  unsigned int nSample = coldCh.get_nSubSample();
-  std::vector<long double> fullLogJointPosterior_local = coldCh.get_partialLogJointCoalProb();
-  std::vector<long double> fullLogJointPosterior_global;
-  fullLogJointPosterior_global.resize(nSample);
-
-  // std::vector<double> expectationOfEachCoalProb = coldCh.get_expectationOfCoalProb();
-  // unsigned int numSubLoci = coldCh.getNumSubLoci();
-
-  // double posterior = 1;
-  if(nSample != fullLogJointPosterior_local.size())
+  int valid = poptree->replacePara(demographicPara);
+  if(valid == -1)
+    return 1*numeric_limits<double>::infinity();
+  else if(valid == 1)
     {
-      std::cout << "** Error In MaxPosterior::computeLogJointDensity_mutationScalars_MPI_overSubLoci() **\n";
-      std::cout << "nSample = " << nSample 
-		<< " fullLogJointPosterior_local.size() = " << fullLogJointPosterior_local.size() <<"\n\n";
-    }
+      poptree->replacePara(demographicPara);
+      
+      coldCh.compute_partialJointPosteriorDensity_mutationScalars_overSubLoci(poptree, im, crr_procID, nProcs);
+      
+      unsigned int nSample = coldCh.get_nSubSample();
+      std::vector<long double> fullLogJointPosterior_local = coldCh.get_partialLogJointCoalProb();
+      std::vector<long double> fullLogJointPosterior_global;
+      fullLogJointPosterior_global.resize(nSample);
+      
+      // std::vector<double> expectationOfEachCoalProb = coldCh.get_expectationOfCoalProb();
+      // unsigned int numSubLoci = coldCh.getNumSubLoci();
+      
+      // double posterior = 1;
+      if(nSample != fullLogJointPosterior_local.size())
+	{
+	  std::cout << "** Error In MaxPosterior::computeLogJointDensity_mutationScalars_MPI_overSubLoci() **\n";
+	  std::cout << "nSample = " << nSample 
+		    << " fullLogJointPosterior_local.size() = " << fullLogJointPosterior_local.size() <<"\n\n";
+	}
+      
+      long double local_logPosterior =0;
+      long double global_logPosterior = 0;
+      long double sumJointPosterior = 0.0;
+      long double logSumJointPosterior = 0.0;
+      long double max_logPosterior = -1*numeric_limits<long double>::infinity();
+      for(unsigned int ii=0; ii< nSample; ii++)
+	{
+	  local_logPosterior = fullLogJointPosterior_local.at(ii);
+	  global_logPosterior = 0;
+	  MPI::COMM_WORLD.Barrier();
+	  MPI::COMM_WORLD.Allreduce(&local_logPosterior, &global_logPosterior, 1, MPI_LONG_DOUBLE, MPI_SUM);
+	  MPI::COMM_WORLD.Barrier();
+	  
+	  if(crr_procID==0)
+	    {
+	      Eigen::Vector3d paraMax = im.get_paraMax();
+	      double priorPopTree = poptree->computeJointPrior(paraMax);
+	      fullLogJointPosterior_global.at(ii) = global_logPosterior;
+	      
+	      sumJointPosterior += exp(global_logPosterior);
+	      
+	      if(max_logPosterior < global_logPosterior)
+		max_logPosterior = global_logPosterior;
+	    }
+	}
 
-  long double local_logPosterior =0;
-  long double global_logPosterior = 0;
-  long double sumJointPosterior = 0.0;
-  long double logSumJointPosterior = 0.0;
-  long double max_logPosterior = -1*numeric_limits<long double>::infinity();
-  for(unsigned int ii=0; ii< nSample; ii++)
-    {
-      local_logPosterior = fullLogJointPosterior_local.at(ii);
-      global_logPosterior = 0;
-      MPI::COMM_WORLD.Barrier();
-      MPI::COMM_WORLD.Allreduce(&local_logPosterior, &global_logPosterior, 1, MPI_LONG_DOUBLE, MPI_SUM);
-      MPI::COMM_WORLD.Barrier();
       
       if(crr_procID==0)
 	{
+	  long double ratios = 0.0;
+	  for(unsigned int ii=0; ii< nSample; ii++)
+	    {
+	      ratios += exp(fullLogJointPosterior_global.at(ii)-max_logPosterior);
+	    }      
+	  logSumJointPosterior = max_logPosterior + log(ratios);
+	}
+      
+      long double logPosterior = 0;
+      if(crr_procID ==0)
+	{	
 	  Eigen::Vector3d paraMax = im.get_paraMax();
 	  double priorPopTree = poptree->computeJointPrior(paraMax);
-	  fullLogJointPosterior_global.at(ii) = global_logPosterior;
-
-	  sumJointPosterior += exp(global_logPosterior);
-
-	  if(max_logPosterior < global_logPosterior)
-	    max_logPosterior = global_logPosterior;
+	  //posterior = exp(global_logPosterior+log(priorPopTree));
+	  logPosterior = logSumJointPosterior + log(priorPopTree)-log(nSample);
 	}
-    }
-
       
-  if(crr_procID==0)
-    {
-      long double ratios = 0.0;
-      for(unsigned int ii=0; ii< nSample; ii++)
+      if(crr_procID ==0)
 	{
-	  ratios += exp(fullLogJointPosterior_global.at(ii)-max_logPosterior);
-	}      
-      logSumJointPosterior = max_logPosterior + log(ratios);
-    }
-
-  // REMOVE  
-  //  if(crr_procID==0)
-  // {
-  //    std::cout << "fullLogJointPosterior_global.at(ii) = ";
-  //    for(unsigned int ii=0; ii< nSample; ii++)
-  //	{
-  //	  std::cout << fullLogJointPosterior_global.at(ii) << " (" << exp(fullLogJointPosterior_global.at(ii)) <<") ";
-  //	}
-  //    std::cout << "\n" << " sumJointPosterior =" << sumJointPosterior 
-  //		<<" logSumJointPosterior = " <<logSumJointPosterior <<"\n";
-  //  }
-  // MPI::COMM_WORLD.Barrier();
-  // MPI::COMM_WORLD.Allreduce(&local_logPosterior_subLoci, &global_logPosterior, 1, MPI_DOUBLE, MPI_SUM);
-  //  MPI::COMM_WORLD.Barrier();
+	  totalComputingTime_eigen += coldCh.get_eachComputingTime_eigen();
+	  totalComputingTime_condiProb += coldCh.get_eachComputingTime_condiProb();
+	  totalNum_eigenFunctionCalls++;
+	  totalNum_condiProbFunctionCalls += coldCh.get_countCondiProbFunctionCalls();
+	  // std::cout << "totalComputingTime_eigen = " << totalComputingTime_eigen.count()/1000 << "milliseconds\n";
+	}
       
-  long double logPosterior = 0;
-  if(crr_procID ==0)
-    {	
-      Eigen::Vector3d paraMax = im.get_paraMax();
-      double priorPopTree = poptree->computeJointPrior(paraMax);
-      //posterior = exp(global_logPosterior+log(priorPopTree));
-      logPosterior = logSumJointPosterior + log(priorPopTree)-log(nSample);
+      
+      return logPosterior;
     }
-  
-  if(crr_procID ==0)
-    {
-      totalComputingTime_eigen += coldCh.get_eachComputingTime_eigen();
-      totalComputingTime_condiProb += coldCh.get_eachComputingTime_condiProb();
-      totalNum_eigenFunctionCalls++;
-      totalNum_condiProbFunctionCalls += coldCh.get_countCondiProbFunctionCalls();
-      // std::cout << "totalComputingTime_eigen = " << totalComputingTime_eigen.count()/1000 << "milliseconds\n";
-    }
-  
-  
-  return logPosterior;
 }
 
 

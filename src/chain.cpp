@@ -55,13 +55,6 @@ void Chain::read_LmodeInputFile(IM im)
     {     
       // read_newickTrees(im);
       read_newickTrees_partial(im);
-
-      // save the list of ranked tree topologies
-      if(cpuID ==0)
-	{
-	  // print_listTrees();
-	  saveListTopo2File();
-	}
     }
   else
     {
@@ -76,42 +69,6 @@ void Chain::read_LmodeInputFile(IM im)
       read_tipIDs_partial(im);
       read_listTrees();
     }
-
-  find_print_theMaxHeightsTrees();
-  
-  return;
-}
-
-void Chain::find_print_theMaxHeightsTrees()
-{
-  double max_age=0;
-  for(unsigned int i=0; i<nSubSample; i++)
-    for(unsigned int j=0; j<numSubLoci; j++)
-      {
-	double age = coalTimes.at(i).at(j).front();
-	// std::cout <<"cpuID =" << cpuID  << " age = " << age <<"\n";
-	if(max_age < age)
-	  {
-	    max_age = age;
-	    /*
-	    std::cout <<"cpuID = " << cpuID <<" max_age=" 
-		      << max_age <<" age = " << age 
-		      << "locusID = " << locusID_start+j 
-		      <<" " ;
-	    trees_atPrev.at(j)->print_coaltree();
-	    */	    
-	  }
-      }
-
-  double max_age_global = 0;
-  MPI::COMM_WORLD.Barrier();
-  MPI::COMM_WORLD.Reduce(&max_age, &max_age_global, 1, MPI_DOUBLE, MPI_MAX, 0);
-
-  if(cpuID ==0)
-    {
-      std::cout <<"\nThe maximum of tree heigths is " << max_age_global <<". If the upper bound of the splitting time is higher than this maximum, please use an upper bound smaller than the maximum height.\n\n";
-    }
-
   return;
 }
 
@@ -120,14 +77,7 @@ void Chain::find_print_theMaxHeightsTrees()
 void Chain::read_newickTrees_partial(IM im)
 {
   char* inputFile = im.get_newickTreeFileName();
-  char* SeqPopFile = im.get_SeqPopFileName();
-  if(cpuID ==0)
-    std::cout << "\n Reading "<< inputFile <<"\n";
-
-  /*
-  std::cout <<"numSubLoci = "<< numSubLoci 
-	    <<" nSubSample = "<< nSubSample <<"\n";
-  */
+  std::cout << "\n Reading "<< inputFile <<"\n";
 
   trees_atPrev.resize(numSubLoci); 
   treeIDs.resize(nSubSample);
@@ -136,32 +86,13 @@ void Chain::read_newickTrees_partial(IM im)
   logPrior_trees.resize(nSubSample);
   logPriorTrees_atPrev = 0.0;
 
-  ifstream inFile; 
-
-  // seq-population names
-  std::vector<unsigned int> SeqPop;
-  unsigned int word_counter = 0;
-  unsigned int label = 0;
-  inFile.open(SeqPopFile);
-  while(inFile >> label){
-    SeqPop.push_back(label);
-    word_counter++;
-  }
-  inFile.close();
-
-  /*
-  std::cout <<"word_counter = " << word_counter <<"\n";
-  for(unsigned int i=0; i<word_counter; i++)
-    std::cout << SeqPop.at(i) <<" ";
-  std::cout <<"\n";
-  */
-
   string word;
   unsigned int iter = 0;
   unsigned int locusID = 0;
   unsigned int line_counter = 1;
   std::string tree_string;
 
+  ifstream inFile; 
   inFile.open(inputFile);
   
   unsigned int count_nSample_perProcess = 0;
@@ -172,19 +103,17 @@ void Chain::read_newickTrees_partial(IM im)
 
       if(locusID >=locusID_start && locusID <= locusID_end)
 	{
-	  // std::cout << "locusID = " << locusID  << " tree_string = " << tree_string <<"\n";
+	  std::cout << "locusID = " << locusID  << " tree_string = " << tree_string <<"\n";
 	  
 	  node* tree = new node;
 	  tree->convertFromNewick(tree_string,1);
-	  // tree->assignPopulations2Tips(im.getLoci()[0]);
-	  tree->assignPopulations2Tips(SeqPop);
+	  tree->assignPopulations2Tips(im.getLoci()[0]);
 	  trees_atPrev.at(locusID-locusID_start) = tree;
-	  /*
+	  
 	  if(locusID == locusID_end)
 	    {
 	      collectAllUpdates_Lmode(0);
 	    }	        
-	  */
 	}
       if(locusID==n_loci-1)
 	locusID++;
@@ -192,91 +121,9 @@ void Chain::read_newickTrees_partial(IM im)
      
   inFile.close();
   
-  if(cpuID == 0)
-    collectAllUpdates_Lmode(0);
-  
-  MPI::COMM_WORLD.Barrier();
-
-  collectAllUpdates_bwProcs_Lmode();
-
-
-  // REMOVE
-  /*
-  if(cpuID==0)
-    {
-      unsigned int list_size = list_trees.size();
-      for(unsigned int i=0; i<list_size; i++)
-	{
-	  std::cout <<i <<" ";
-	  list_trees.at(i)->print_topo();
-	}
-    }
-  */
-
   return;
 }
 
-
-void Chain::collectAllUpdates_bwProcs_Lmode()
-{  
-  for(unsigned int p=1; p< nProcesses; p++)
-    {
-      MPI::COMM_WORLD.Barrier();
-      unsigned int list_size = list_trees.size();
-      unsigned int listSize_new = 0;
-      if(cpuID==0) // send list_trees
-	{
-	  MPI::COMM_WORLD.Send(&list_size, 1, MPI::UNSIGNED, p, 3168);
-	  
-	  for(unsigned int ll=0; ll<list_size; ll++)
-	    list_trees.at(ll)->MPIsend_nodeSimple(p);	  
-	}
-      else if(cpuID==p) // receive list_trees
-	{
-	  list_size = 0;
-	  MPI::COMM_WORLD.Recv(&list_size, 1, MPI::UNSIGNED, 0, 3168);
-	  
-	  for(unsigned int ll=0; ll<list_size; ll++)
-	    {
-	      nodeSimple *topo = new nodeSimple;
-	      topo->MPIreceive_coaltree(0);
-	      list_trees.push_back(topo);
-	    }
-
-	  collectAllUpdates_Lmode(0);
-	  listSize_new = list_trees.size();
-	}
-      
-      
-      MPI::COMM_WORLD.Bcast(&listSize_new, 1, MPI::UNSIGNED, p);
-      MPI::COMM_WORLD.Barrier();
-
-      if(cpuID <= p)
-	{
-	  if(listSize_new > list_size) // new unique topologies
-	    {
-	      if(cpuID==p)
-		{
-		  for(unsigned int qq=0; qq<p; qq++)
-		    for(unsigned int tt=list_size; tt<listSize_new; tt++)
-		      list_trees.at(tt)->MPIsend_nodeSimple(qq);		    
-		}
-	      for(unsigned int qq=0; qq<p; qq++)	      
-		{
-		  if(cpuID==qq)
-		    {
-		      for(unsigned int tt=list_size; tt<listSize_new; tt++)
-			{
-			  nodeSimple *topo = new nodeSimple;
-			  topo->MPIreceive_coaltree(p);
-			  list_trees.push_back(topo);
-			}
-		    }
-		}
-	    }	  
-	}
-    }
-}
 
 void Chain::read_newickTrees(IM im)
 {
@@ -1502,9 +1349,6 @@ void Chain::saveEachLogPrior()
 
 void Chain::saveListTopo2File()
 {
-  // std::cout <<"In Chain::saveListTopo2File()\n";
-  // std::cout << "list_trees.size() = " << list_trees.size() <<"\n";
-
   ofstream treefile;
   treefile.open ("MCMCsample_listTopo.txt");
   treefile << "treeID\ttopo\n";
@@ -1918,7 +1762,7 @@ void Chain::compute_coalTimes_tipIDs(unsigned int iter, unsigned int id_locus, n
 	}
       else if(tree->desc[0]->isTip == 1 && tree->desc[1]->isTip ==1) 
 	{
-	  if(tree->desc[0]->tipID < tree->desc[1]->tipID) // smaller tipID is the first
+	  if(tree->desc[0]->tipID < tree->desc[1]->tipID) 
 	    {
 	      compute_coalTimes_tipIDs(iter,id_locus,tree->desc[0]);
 	      compute_coalTimes_tipIDs(iter,id_locus,tree->desc[1]);	      
@@ -1930,7 +1774,7 @@ void Chain::compute_coalTimes_tipIDs(unsigned int iter, unsigned int id_locus, n
 	    }
 	  else
 	    {
-	      std::cout << "\n*** Error in Chain::compute_coalTimes_tipIDs() ***\n";
+	      std::cout << "/n*** Error in Chain::compute_coalTimes_tipIDs() ***\n";
 	      std::cout << "(sub)tree is ";
 	      tree->print_coaltree();
 	      std::cout << "tree->desc[0]->age = " << tree->desc[0]->age
@@ -1940,32 +1784,12 @@ void Chain::compute_coalTimes_tipIDs(unsigned int iter, unsigned int id_locus, n
 			<< "\n";
 	    }
 	}
-      else if(tree->desc[0]->age == tree->desc[1]->age && tree->desc[0]->isTip == 0 && tree->desc[1]->isTip ==0)
-	{
-	  // same ages of two coalescent events
-	  // It can happen when the mles of trees are analyzed in step 2. - YC 8/17/2016
-	  tree->desc[1]->age += pow(10,-10);
-	  if(tree->age < tree->desc[1]->age)
-	    {
-	      tree->desc[1]->age =(tree->age+ tree->desc[1]->age)/2;
-	    }
-
-	  // REMOVE
-	  // std::cout <<" tree->desc[0]->age = " << tree->desc[0]->age 
-	  //	    <<" tree->desc[1]->age =" << tree->desc[1]->age <<"\n";
-	  compute_coalTimes_tipIDs(iter,id_locus,tree->desc[0]);
-	  compute_coalTimes_tipIDs(iter,id_locus,tree->desc[1]);	 
-	}
       else
 	{
 	  std::cout << "/n*** Error in Chain::compute_coalTimes_tipIDs() ***\n";
 	  std::cout << "(sub)tree is ";
 	  tree->print_coaltree();
 	  std::cout << "tree->isTip = "<< tree->isTip
-		    << "tree->desc[0]->age = " << tree->desc[0]->age
-		    << "tree->desc[1]->age = " << tree->desc[1]->age
-		    << "tree->desc[0]->isTip = "<< tree->desc[0]->isTip
-		    << "tree->desc[1]->isTip = "<< tree->desc[1]->isTip
 		    << "\n";  	  
 	}
     }
@@ -2430,7 +2254,6 @@ void Chain::collectAllUpdates_Lmode(unsigned int savingID)
 	  topo->convert(trees_atPrev.at(i), ct, trees_atPrev.at(i)->size_tree()); // Updated by YC 5/8/2014
 	  topo->computeSizes();
 	  list_trees.push_back(topo);
-	  treeIDs.at(savingID).at(i) = 0;	  
 	}
       else
 	{
@@ -2441,7 +2264,6 @@ void Chain::collectAllUpdates_Lmode(unsigned int savingID)
 	      found_sampleTopo = list_trees.at(count)->sameTopo(trees_atPrev.at(i));
 	      count++;
 	    }
-
 	  if(found_sampleTopo == 0)
 	    {
 	      nodeSimple *topo = new nodeSimple;
