@@ -5,6 +5,7 @@
 
 #include <vector>
 #include <string>
+#include <iostream>
 //FIXME
 	// For MPI, we need to uncommand out
 // #include <gsl/gsl_rng.h>
