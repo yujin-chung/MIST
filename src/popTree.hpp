@@ -33,12 +33,21 @@ private:
 	unsigned int popID;
 	popTree *par;
 	popTree *desc[2];
-	double age;
+  double age; 
 	double populationSize;
 
 	// Added by YC 5/9/2014
 	std::vector<popTree*> pop2mig;
 	std::vector<double> migRate;
+
+  
+  // 2018/07/16 - YC
+  double durationOfSplitting; // the duration of populations/species splitting (fixed or estimated). Default: 0.  
+  unsigned int migband;
+  // 0 if migration allows constantly after the splitting. (Default)
+  // 1 if migration does not allow some time after splitting. "durationOfSplitting" is estimated
+  // 2 if migration does not allow some time after splitting. "durationOfSplitting" is fixed and given by the command line.
+  
 
 	// old version
 	std::vector<Migration> mig;
@@ -84,6 +93,10 @@ public:
   void assign_populationSize(double size) {populationSize = size;}
   void assign_desc(unsigned int i, popTree* tr){desc[i] = tr;}
   void assign_par(popTree* tr){par = tr;}
+
+  // 2018/07/16
+  void assign_durationOfSplitting(double t){durationOfSplitting=t;}
+  
   void set_isTip(unsigned int tip){isTip = tip; return;}
   
   // Added by YC 5/15/2014

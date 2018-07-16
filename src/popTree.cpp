@@ -137,6 +137,11 @@ void popTree::replacePara(Eigen::MatrixXd listPara)
 void popTree::initialize_popTree_recursion(IM im, std::string newickTree, Eigen::Vector3d paraMax)
 {
   double para = 0.0;
+  
+  // 2018/07/16
+  durationOfSplitting = im.get_durationOfSplitting();
+  migband= im.get_migband();
+  
   if(newickTree.size()>0 && newickTree.compare(0,1,";")!=0)
     {
       if(newickTree.compare(0,1,"(")==0)
@@ -145,11 +150,29 @@ void popTree::initialize_popTree_recursion(IM im, std::string newickTree, Eigen:
 	  desc[no_assignedChildren]->assign_isRoot_isTip(0,0);
 
 	  //-- splitting time --//
-	  if(im.get_ancPop() == 1) // isolation model			
-	    para = runiform()*paraMax(1);
+	  if(im.get_ancPop() == 1) // isolation model
+	    {
+	      // 2018/07/16 - YC
+	      if(migband == 1) // estimated
+		{
+		  para = runiform()*paraMax(1);
+		  desc[no_assignedChildren]->assign_durationOfSplitting(runiform()*para);
+		}
+	      else if(migband == 2) //fixed
+		{
+		  para = durationOfSplitting + runiform()*(paraMax(1)-durationOfSplitting);
+		  if(para < 0)
+		    {
+		      std::cout <<"\n\n Error: The upperbound of population splitting time should be larger than the duration of splitting.\n\n";
+		    }			    
+		}
+	    }
 	  else // island model (no ancestral population)
-	    para = paraMax(1);
+	    {
+	      para = paraMax(1);
+	    }
 	  desc[no_assignedChildren]->assign_age(para);
+	 
 
 	  //-- population size --//	  
 	  if(im.get_ancPop() == 1) // isolation model	
@@ -221,6 +244,10 @@ void popTree::initialize_popTree(IM im, unsigned int processID)
   unsigned int ancPop = im.get_ancPop();
   Eigen::Vector3d paraMax = im.get_paraMax();
 
+  // 2018/07/16
+  durationOfSplitting = im.get_durationOfSplitting();
+  migband= im.get_migband();
+  
   if(processID == 0)
     {
 	std::cout << "Initialization of population tree....\n";
@@ -250,12 +277,17 @@ void popTree::initialize_popTree(IM im, unsigned int processID)
 	    {
 	      age = 0;
 	      isTip =1;
+	      durationOfSplitting = 0;
 	    }
-	  else
-	    age = runiform()*paraMax(1);
+	  else // single population
+	    {
+	      age = runiform()*paraMax(1);
+	    }
 	}
       else // island model (no ancestral population)
-	age = paraMax(1);
+	{
+	  age = paraMax(1);
+	}
 
       //-- ancestral population size --//      
       if(im.get_ancPop() == 1) // isolation model

@@ -89,7 +89,7 @@ int main (int argc, char *argv[])
   // computing the empirical distribution etc.
   
   unsigned int execute=im.initialization(argc, argv, currentid);
-  if(execute==1)
+  if(execute==1) // MCMC
     {
       
       

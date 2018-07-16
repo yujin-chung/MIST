@@ -116,7 +116,16 @@ private:
                          // acceptance rates every 10*'printFreq' iterations.
   double popSizeMax; // the upper bound of population size (4Nu)
   double splittingTimeMax; /// the upper bound of the splitting times
-  double migRateMax; 
+  double migRateMax;
+
+  
+  // 2018/07/16 - YC
+  double durationOfSplitting; // the duration of populations/species splitting (fixed or estimated). Default: 0.  
+  unsigned int migband;
+  // 0 if migration allows constantly after the splitting. (Default)
+  // 1 if migration does not allow some time after splitting. "durationOfSplitting" is estimated
+  // 2 if migration does not allow some time after splitting. "durationOfSplitting" is fixed and given by the command line.
+  
 
   unsigned int MLmodes; 
   // 1 if M mode is only called;
@@ -229,6 +238,9 @@ public:
   unsigned int get_nParaVectors(){return nParaVectors;}
   unsigned int get_checkpoint(){return checkpoint;}
   unsigned int get_howOften_checkpoint(){return howOften_checkpoint;}
+
+  double get_durationOfSplitting(){return durationOfSplitting;}
+  unsigned int get_migband(){return migband;}
 };
 
 #endif /* IM_HPP_ */
