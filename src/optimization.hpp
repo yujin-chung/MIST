@@ -15,6 +15,10 @@ class MaxPosterior
   unsigned int nPara;
   Eigen::MatrixXd para_atCrr;
   Eigen::MatrixXd para_atPrev;
+  
+  double durationOfSplitting_atPrev;
+  double durationOfSplitting_atCrr;
+  
   std::vector<double> priorsMax;
   std::vector<long double> posterior_atCrr;
   std::vector<long double> posterior_atPrev;

@@ -158,7 +158,7 @@ private :
     // then states_observed.at(0).at(0) = (1,2);
     //      states_observed.at(0).at(1) = (5,2);
     //      states_observed.at(0).at(2) = (6);
-    // and states_observed_freq.at(0).at(0) = (2,2);
+    // and states_observed_freq.at(0).at(0) = (2,1);
     //     states_observed_freq.at(0).at(1) = (1,1);
     //     states_observed_freq.at(0).at(2) = (1).
   std::vector<std::vector<unsigned int> > nKinds_lineages; // shared across processes
@@ -445,6 +445,11 @@ void update_mutationScaler_Kappa_usePriorsOnly(unsigned int id_crrIter, std::vec
   void compute_partialJointPosteriorDensity_overSubSample_selfNormalized(popTree* poptree, IM im, unsigned int crrProcID, unsigned int nProcs);
   void find_print_theMaxHeightsTrees();
 
+  // 2018/07/17 YC
+  unsigned int find_stateID_noMigBefore(unsigned int trID, unsigned int nPops, unsigned int nCoalEventsSoFar);
+
+  
+  
 	// old version
 	unsigned int compute_size_stateSpaces(unsigned int freq, unsigned int nPops);
 	std::string find_nextCoalLineage(unsigned int id_samples,unsigned int  id_period);

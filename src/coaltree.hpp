@@ -216,7 +216,8 @@ private:
   double age;
   double popSize;
   int nodeLabel;
-
+  // If the descendant tips are from different populations, nodeLabel = -1.
+  // nodeLabel = popID otherwise.
 
 public:
   void assignSize(unsigned int s){size = s;}
@@ -309,11 +310,17 @@ public:
   void compute_areTipsFromSamePop();
   std::vector<unsigned int> get_nodePopID_withRank(unsigned int R);
 
-  long double compute_logProb_zeroMig(std::vector<double> coalT, std::vector<double> allPopSize, double splittingTime);
+  long double compute_logProb_zeroMig(unsigned int nGeneCopies, std::vector<double> coalT, std::vector<double> allPopSize, double splittingTime);
+  long double compute_logProb_zeroMig_toTheTimeOfSplittingCompletion(unsigned int nGeneCopies, std::vector<double> coalT, std::vector<double> allPopSize, double timeOfSplittingCompletion);
   unsigned int compute_nCoalEvents(int label);
   unsigned int compute_maxNumLin(int label);
   std::list<double> compute_intervalCoalT(int label, double splittingTime, std::list<double> intervalCoalT);
 
+  // 2018/07/17 YC
+  int find_nodeLabel(unsigned int rr);
+
+
+  
   void MPIreceive_coaltree(int senderID);
   void MPIsend_nodeSimple(unsigned int receiverID);
   

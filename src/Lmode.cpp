@@ -2938,7 +2938,7 @@ void Chain::compute_eigenValuesVectors_subMatOfEigenVectors(popTree* poptree)
 	  // Each 'subMatV.at(i).at(j)' has 4 matrices:
 	  //  case 0: submatrix of eigen vector matrix for a coalescent event (possible paths of a coalescent event)
 	  //  case 1: submatrix of inverse eigenvector matrix for a coalescent event (possible paths of a coalescent event)
-	  //  case 2: submstrix of inverse eigenvector matrix for population merging (all transient paths)
+	  //  case 2: submatrix of inverse eigenvector matrix for population merging (all transient paths)
 	  
 
 	  // case 0 
@@ -4180,10 +4180,88 @@ unsigned int nodeSimple::compute_maxNumLin(int label)
   return nL;
 }
 
+// 2018/07/17 YC
+// Computing the log probability from the present time to the time of splitting completion under IM with migration band
+// "allPopSize" contains all population sizes but not the ancestral population size.
+long double nodeSimple::compute_logProb_zeroMig_toTheTimeOfSplittingCompletion(unsigned int nGeneCopies, std::vector<double> coalT, std::vector<double> allPopSize, double timeOfSplittingCompletion)
+{  
+  
+  long double logProb=0; 
+  /*
+  std::cout <<"splittingTime = "<< splittingTime <<"\n";
+  std::cout <<"nodeLabel = " << nodeLabel <<"\n";
+  std::cout <<"popSize = "<< popSize <<"\n";
+  */
+  unsigned int nEvents = 0;
+  if(nodeLabel==-1)
+    {
+      logProb = -1*numeric_limits<long double>::infinity();
+    }
+  else if(isTip==0 && nodeLabel !=-1)
+    {
+      // unsigned int nCoalEvents = compute_nCoalEvents(allPopSize.size());
+      // std::cout <<"nCoalEvents = "<< nCoalEvents <<"\n";
+      
+      for(unsigned int i=0; i<allPopSize.size(); i++)
+	{
+	  unsigned int maxNumLin = compute_maxNumLin(i+1);
+	  // std::cout <<"popID = "<< i+1<< " maxNumLin = "<< maxNumLin <<"\n";
+	  std::list<double> intervalCoalT;
+	  intervalCoalT = compute_intervalCoalT(i+1, timeOfSplittingCompletion, intervalCoalT);
+	  intervalCoalT.sort(); // increasing order
+	  unsigned int nCoal = intervalCoalT.size();
+	  // std::cout <<"intervalCoalT.size = "<< intervalCoalT.size()<<"\n";
+	  
+	  if(nCoal==0)
+	    logProb += (long double) -1*maxNumLin*(maxNumLin-1)*timeOfSplittingCompletion/allPopSize.at(i);
+	  else
+	    {
+	      std::list<double>::iterator iter = intervalCoalT.begin();	      
+	      if(*iter < timeOfSplittingCompletion)
+		{
+		  double waitingTime = 0;
+		  double prevT=0;
+		  unsigned int nLin= maxNumLin;
+		  for(iter; iter!=intervalCoalT.end(); iter++)
+		    {
+		      waitingTime = *iter -prevT;
+		      logProb += log(2/allPopSize.at(i)) - nLin*(nLin-1)*waitingTime/allPopSize.at(i);
+		      prevT = *iter;
+		      nLin--;
+		    }	
+		  waitingTime = timeOfSplittingCompletion -prevT;
+		  logProb += -nLin*(nLin-1)*waitingTime/allPopSize.at(i);	  
+		  
+		}
+	      else
+		{
+		  double waitingTime = 0;
+		  double prevT=timeOfSplittingCompletion;
+		  unsigned int nLin= maxNumLin;
+		  std::list<double>::iterator iter = intervalCoalT.begin();
+		  for(iter; iter!=intervalCoalT.end(); iter++)
+		    {
+		      waitingTime = *iter -prevT;
+		      logProb += log(2/allPopSize.at(i)) - nLin*(nLin-1)*waitingTime/allPopSize.at(i);
+		      prevT = *iter;
+		      nLin--;
+		      
+		    }			  
+		}
+	    }
+	  // std::cout << "logProb = " << logProb <<"\n";
+	} // END of for(unsigned int i=0; i<allPopSize.size(); i++)  
+    }
+
+  return logProb;
+}
+
 // Computing the log
-long double nodeSimple::compute_logProb_zeroMig(std::vector<double> coalT, std::vector<double> allPopSize, double splittingTime)
+long double nodeSimple::compute_logProb_zeroMig(unsigned int nGeneCopies, std::vector<double> coalT, std::vector<double> allPopSize, double splittingTime)
 {
-  unsigned int nGeneCopies = coalT.size()+1; 
+ 
+  //   unsigned int nGeneCopies = coalT.size()+1; // 2018/0717 YC
+  
   long double logProb=0; 
   /*
   std::cout <<"splittingTime = "<< splittingTime <<"\n";
@@ -4285,13 +4363,79 @@ long double Chain::compute_logConditionalProb_zeroMig(unsigned int id_sample, un
   unsigned int trID = treeIDs.at(id_sample).at(id_locus);
   nodeSimple* topo=list_trees.at(trID);
   topo->assign_age_nodeLabel_popSize(eventT_inc,popSize, splittingTime);
-  long double logProb = topo->compute_logProb_zeroMig(eventT_inc,popSize, splittingTime);
+  
+  unsigned int nGeneCopies = eventT_inc.size()+1; 
+  long double logProb = topo->compute_logProb_zeroMig(nGeneCopies, eventT_inc,popSize, splittingTime);
 
   // std::cout << "logProb = " << logProb <<"\n";
   
   return logProb;
 }
 
+//Find and return the nodeLabel of the node with 'rank'=rr
+int nodeSimple::find_nodeLabel(unsigned int rr)
+{
+  int label = 1000;
+  if(rank ==rr)
+    label = nodeLabel;
+  else
+    {
+      label = firstChild->find_nodeLabel(rr);
+      if(label ==1000)
+	label = secondChild->find_nodeLabel(rr);
+      
+    }
+  return label;
+}
+
+// 2018/07/17 YC
+unsigned int Chain::find_stateID_noMigBefore(unsigned int trID, unsigned int nPops, unsigned int nCoalEventsSoFar)
+{
+  unsigned int stateID = 0;
+
+  unsigned int nKinds = states_observed_freq.at(trID).at(nCoalEventsSoFar).size();
+  nodeSimple* topo=list_trees.at(trID);
+  
+  Eigen::MatrixXd mat;
+  mat.resize(1, nPops*nKinds);
+  mat.setZero();
+  // This assumes nPop = 2
+  if(nKinds == 1)
+    {
+      int nodeLabel = topo->find_nodeLabel(states_observed.at(trID).at(nCoalEventsSoFar).at(0));
+      if(nodeLabel == -1)
+	{
+	  std::cout <<"\n\nError in ";
+	}
+      else
+	mat(0,nodeLabel-1) = states_observed_freq.at(trID).at(nCoalEventsSoFar).at(0);
+    }
+  else if(nKinds > 1)
+    {
+      for(unsigned int k=0; k<nKinds; k++)
+	{
+	  int nodeLabel = topo->find_nodeLabel(states_observed.at(trID).at(nCoalEventsSoFar).at(k));
+	  if(nodeLabel == -1)
+	    {
+	      std::cout <<"\n\nError in ";
+	    }
+	  else
+	    mat(0,k+k*(nodeLabel-1)) = states_observed_freq.at(trID).at(nCoalEventsSoFar).at(k);
+	}
+    }
+
+  unsigned int nrow = stateSpaces.at(trID).at(nCoalEventsSoFar).rows();
+  unsigned int found = 0;
+  unsigned int r = 0;
+  for(r = 0; r < nrow && found ==1; r++)
+    {
+      if( stateSpaces.at(trID).at(nCoalEventsSoFar).row(r) == mat.row(0))
+	found = 1;
+    }
+  stateID = r;
+  
+  return stateID;
+}
 
 // YC 3/25/2015
 // 'crrProcID' is required for debugging only. This function is called on each process.
@@ -4317,6 +4461,7 @@ double Chain::compute_logConditionalProb(unsigned int id_sample, unsigned int id
     }
   double splittingTime = poptree->get_age(); // Sorts the elements in ascending order
 
+
   // std::cout << "popSize = " << popSize <<"\n";
   // std::cout << "splittingTime = " << splittingTime <<"\n";
 
@@ -4327,7 +4472,7 @@ double Chain::compute_logConditionalProb(unsigned int id_sample, unsigned int id
   std::list<double> eventT = coalTimes.at(id_sample).at(id_locus);
 
 
-  eventT.sort();
+  eventT.sort(); // increading order
 
   // std::cout <<"nGeneCopies = " << coalTimes.at(id_sample).at(id_locus).size()+1 <<"\n";
   
@@ -4338,9 +4483,50 @@ double Chain::compute_logConditionalProb(unsigned int id_sample, unsigned int id
   Eigen::MatrixXcd probMat;
   unsigned int count_events=0;
   iter = eventT.begin();
-  while(count_events <nGeneCopies-1 && iter!=eventT.end())
-    {  
-      // std::cout << "*iter = " << *iter << "\n";
+
+
+  // 2018/07/17 YC
+  double timeOfSplittingCompletion = poptree->get_durationOfSplitting();
+  if(poptree->get_migband()!=0)
+    {      
+      std::vector<double> eventT_inc;
+      iter = eventT.end();
+      unsigned int stop = 0;
+      for(iter=eventT.begin(); iter!=eventT.end() ; iter++)
+	{	  
+	  eventT_inc.push_back(*iter);
+	  if(*iter < timeOfSplittingCompletion)
+	    {
+	      count_events++;
+	    }
+	}  
+      std::vector<double> popSize;
+      for(unsigned int p1=0; p1< nPops; p1++)
+	{
+	  popSize.push_back(poptree->find_popSize(p1+1));
+	}
+      // unsigned int trID = treeIDs.at(id_sample).at(id_locus);
+      nodeSimple* topo=list_trees.at(trID);
+      topo->assign_age_nodeLabel_popSize(eventT_inc, popSize, timeOfSplittingCompletion);    
+      logProb = topo->compute_logProb_zeroMig_toTheTimeOfSplittingCompletion(nGeneCopies, eventT_inc,popSize, timeOfSplittingCompletion);
+    }
+
+  
+  // DELETE
+  if(crrProcID==0)
+    {
+      std::cout <<"\n\n In double Chain::compute_logConditionalProb(..)\n";
+      std::cout<<"count_events = "<< count_events <<"\n";
+      std::cout <<"splitting time = " << splittingTime <<" timeOfSplittingCompletion = " << timeOfSplittingCompletion <<"\n";
+      std::cout <<"*iter = " << *iter << "\n";
+    }
+ 
+  
+  while(count_events <nGeneCopies-1 && iter!=eventT.end() && isfinite(logProb))
+    { 
+      // DELETE
+      std::cout << "*iter = " << *iter << "\n";
+      
       if(*iter <=splittingTime)
 	{	  
 	  //--- Case 3: coalescent events in sampling populations ---//
@@ -4353,12 +4539,16 @@ double Chain::compute_logConditionalProb(unsigned int id_sample, unsigned int id
 	  double waitingTime = 0.0;
 	  if(count_events==0)
 	    {
-	      waitingTime = *iter;
-	    }
-	  else
+	      if(*iter > timeOfSplittingCompletion)
+	      waitingTime = *iter - timeOfSplittingCompletion;
+	    }	 
+	  else 
 	    {		      
-	      iter_prev--;		 
-	      waitingTime = *iter - *iter_prev;
+	      iter_prev--;
+	      if(*iter > timeOfSplittingCompletion && *iter_prev <timeOfSplittingCompletion)
+		waitingTime = *iter - timeOfSplittingCompletion;
+	      else
+		waitingTime = *iter - *iter_prev;
 	    }
 	  
 	  Eigen::MatrixXcd V_inv = subMatV.at(trID).at(count_events).at(1);
@@ -4392,7 +4582,18 @@ double Chain::compute_logConditionalProb(unsigned int id_sample, unsigned int id
 			    << ", id_locus = "<< id_locus <<", crrProcID = "<< crrProcID << " and poptree is ";
 		  poptree->print_allPopTree();
 		}
-	      probMat = probMat*V; // row-vector
+
+	      // 2018/07/17 YC
+	      if(*iter > timeOfSplittingCompletion && *iter_prev <timeOfSplittingCompletion)
+		{
+		  // find the stateID, from 'stateSpaces' of the state after "count_events" coalescent events
+		  // -- the ancestral lineage should be in the sample population of its descendants
+		  unsigned int stateID = find_stateID_noMigBefore(trID, nPops, count_events);
+		  probMat = subMatV.at(trID).at(count_events).at(0).row(stateID);
+		}
+	      else
+		probMat = probMat*V; // row-vector
+	      
 	      probMat = probMat.cwiseProduct((eigenval*waitingTime).exp().matrix().transpose());
 	      probMat = probMat*V_inv;	      
 	      
@@ -4592,7 +4793,7 @@ double Chain::compute_logConditionalProb(unsigned int id_sample, unsigned int id
 	  p_real = pow(10,-10);
 	}
 
-      logProb = log(p_real);
+      logProb += log(p_real);
 	 
     }
 

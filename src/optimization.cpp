@@ -15,6 +15,7 @@ void MaxPosterior::initiate(IM im, popTree* poptree, Chain coldCh, unsigned int 
   F = 0.8;
   CR = 0.9;
 
+  
   nParaVectors = im.get_nParaVectors();
 
   //  std::chrono::microseconds initial(0);
@@ -34,6 +35,8 @@ void MaxPosterior::initiate(IM im, popTree* poptree, Chain coldCh, unsigned int 
   double migRateMax = im.get_migRateMax();
   unsigned int nPara_popSizes;
   
+  // 2018/07/17 YC
+  durationOfSplitting_atPrev = 0;
 
   if(poptree->get_age()==0) // single population
     {
@@ -75,8 +78,15 @@ void MaxPosterior::initiate(IM im, popTree* poptree, Chain coldCh, unsigned int 
 	  else
 	    nPara += 2;     
 	}
+      // 2018/07/17 YC
+      /*
+      if(im.get_migband()==1)
+	{
+	  nPara += 1;
+	}
+      */
     }
-
+  
     
   para_atCrr.resize(nParaVectors,nPara);
   para_atPrev.resize(nParaVectors,nPara);
@@ -93,7 +103,9 @@ void MaxPosterior::initiate(IM im, popTree* poptree, Chain coldCh, unsigned int 
 	if(i < nPara_popSizes)
 	  priorsMax.push_back(im.get_popSizeMax());
 	else if(i==nPara-1 && ancPop ==1)
-	  priorsMax.push_back(im.get_splittingTimeMax());
+	  {	    
+	    priorsMax.push_back(im.get_splittingTimeMax());
+	  }
 	else 
 	  priorsMax.push_back(im.get_migRateMax());
       }
@@ -115,12 +127,34 @@ void MaxPosterior::initiate(IM im, popTree* poptree, Chain coldCh, unsigned int 
 	    {
 	      double para_temp = 0.0;
 	      if(crr_procID == 0)
-		para_temp = priorsMax.at(j)*runiform();   
-	      
+		{
+		  para_temp = priorsMax.at(j)*runiform();
+
+		  // 2018/07/17 YC
+		  if(j==nPara-1 && ancPop == 1 )
+		    {
+		      if(im.get_migband()==1) // estimated
+			{
+			  durationOfSplitting_atPrev = para_temp*runiform();
+			}
+		      else if(im.get_migband()==2) // given & fixed
+			{
+			  durationOfSplitting_atPrev = im.get_durationOfSplitting();
+			  para_temp = durationOfSplitting_atPrev+(priorsMax.at(j)-durationOfSplitting_atPrev)*runiform();
+			}
+		      else
+			durationOfSplitting_atPrev = 0;
+		    }	      
+		}
 	      MPI::COMM_WORLD.Barrier();
 	      MPI::COMM_WORLD.Bcast(&para_temp, 1, MPI_DOUBLE, 0);
 	      MPI::COMM_WORLD.Barrier();
 	      para_atPrev(i,j)=para_temp;
+	      
+	      // 2018/07/17 YC
+	      MPI::COMM_WORLD.Barrier();
+	      MPI::COMM_WORLD.Bcast(&durationOfSplitting_atPrev, 1, MPI_DOUBLE, 0);
+	      MPI::COMM_WORLD.Barrier();
 	    }
 	}
       else
@@ -135,8 +169,10 @@ void MaxPosterior::initiate(IM im, popTree* poptree, Chain coldCh, unsigned int 
 
   // Computing the posterior of para_atPrev
   for(unsigned int i=0; i<nParaVectors; i++)
-    {      
-      Eigen::MatrixXd paraVector(1,6);
+    {
+      // 2018/07/17 YC 
+      Eigen::MatrixXd paraVector(1,7);
+      
       if(poptree->get_age()==0)
 	{
 	  for(unsigned int j=0; j<6; j++)
@@ -177,10 +213,15 @@ void MaxPosterior::initiate(IM im, popTree* poptree, Chain coldCh, unsigned int 
 	      paraVector(0,4) = 0; paraVector(0,5) =0;
 	    }
 	  //-- splitting time --//
-	  if(ancPop == 1)	
-	    paraVector(0,5) = para_atPrev(i,nPara-1);	    
+	  if(ancPop == 1)
+	    {
+	      paraVector(0,5) = para_atPrev(i,nPara-1);
+	    }
 	  else // no ancestral population
 	    paraVector(0,5) =im.get_splittingTimeMax();
+
+	  //-- duration of splitting --//
+	  paraVector(0,6) = durationOfSplitting_atPrev;
 	}
 
      
@@ -722,8 +763,9 @@ long double MaxPosterior::computeLogJointDensity_MPI_overSubLoci_ESS(Eigen::Matr
 
 
 
-// 1/4/2016
-// 'demographicPara' is a 1x6 matrix.
+// 2018/07/17
+// 'demographicPara' is a 1x7 matrix.
+// The last element is durationOfSplitting
 long double MaxPosterior::computeLogJointDensity_MPI_overSubLoci(Eigen::MatrixXd demographicPara, IM im, popTree* poptree, Chain coldCh, unsigned int nProcs, unsigned int crr_procID)
 {
   // std::cout <<"In computeLogJointDensity_MPI_overSubLoci()\n";

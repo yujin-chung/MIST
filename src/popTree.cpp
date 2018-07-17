@@ -64,8 +64,12 @@ void popTree::replacePara(Eigen::MatrixXd listPara)
 {
   populationSize = listPara(0,2);
   age = listPara(0,5);
+  
   if(age>0) // not a single population
-    {
+    {      
+      // 2018/07/17 YC
+      durationOfSplitting = listPara(0,6);
+      
       double popSize = listPara(0,0);
       desc[0]->assign_populationSize(popSize);
       popSize = listPara(0,1);

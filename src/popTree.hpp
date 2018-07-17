@@ -118,6 +118,9 @@ public:
   unsigned int get_ancPop(){return ancPop;} 
   popTree* get_firstChild(){return desc[0];}
   popTree* get_secondChild(){return desc[1];}
+  
+  double get_durationOfSplitting(){return  durationOfSplitting;}
+  unsigned int get_migband(){return migband;}
 
   void print_poptree();
   void print_popSize();
