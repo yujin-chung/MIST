@@ -36,7 +36,7 @@ void MaxPosterior::initiate(IM im, popTree* poptree, Chain coldCh, unsigned int 
   unsigned int nPara_popSizes;
   
   // 2018/07/17 YC
-  durationOfSplitting_atPrev = 0;
+  timeOfSplittingCompletion_atPrev = 0;
 
   if(poptree->get_age()==0) // single population
     {
@@ -135,15 +135,15 @@ void MaxPosterior::initiate(IM im, popTree* poptree, Chain coldCh, unsigned int 
 		    {
 		      if(im.get_migband()==1) // estimated
 			{
-			  durationOfSplitting_atPrev = para_temp*runiform();
+			  timeOfSplittingCompletion_atPrev = para_temp*runiform();
 			}
 		      else if(im.get_migband()==2) // given & fixed
 			{
-			  durationOfSplitting_atPrev = im.get_durationOfSplitting();
-			  para_temp = durationOfSplitting_atPrev+(priorsMax.at(j)-durationOfSplitting_atPrev)*runiform();
+			  timeOfSplittingCompletion_atPrev = im.get_timeOfSplittingCompletion();
+			  para_temp = timeOfSplittingCompletion_atPrev+(priorsMax.at(j)-timeOfSplittingCompletion_atPrev)*runiform();
 			}
 		      else
-			durationOfSplitting_atPrev = 0;
+			timeOfSplittingCompletion_atPrev = 0;
 		    }	      
 		}
 	      MPI::COMM_WORLD.Barrier();
@@ -153,7 +153,7 @@ void MaxPosterior::initiate(IM im, popTree* poptree, Chain coldCh, unsigned int 
 	      
 	      // 2018/07/17 YC
 	      MPI::COMM_WORLD.Barrier();
-	      MPI::COMM_WORLD.Bcast(&durationOfSplitting_atPrev, 1, MPI_DOUBLE, 0);
+	      MPI::COMM_WORLD.Bcast(&timeOfSplittingCompletion_atPrev, 1, MPI_DOUBLE, 0);
 	      MPI::COMM_WORLD.Barrier();
 	    }
 	}
@@ -220,8 +220,8 @@ void MaxPosterior::initiate(IM im, popTree* poptree, Chain coldCh, unsigned int 
 	  else // no ancestral population
 	    paraVector(0,5) =im.get_splittingTimeMax();
 
-	  //-- duration of splitting --//
-	  paraVector(0,6) = durationOfSplitting_atPrev;
+	  //-- time of splitting completion --//
+	  paraVector(0,6) = timeOfSplittingCompletion_atPrev;
 	}
 
      
@@ -765,7 +765,7 @@ long double MaxPosterior::computeLogJointDensity_MPI_overSubLoci_ESS(Eigen::Matr
 
 // 2018/07/17
 // 'demographicPara' is a 1x7 matrix.
-// The last element is durationOfSplitting
+// The last element is timeOfSplittingCompletion
 long double MaxPosterior::computeLogJointDensity_MPI_overSubLoci(Eigen::MatrixXd demographicPara, IM im, popTree* poptree, Chain coldCh, unsigned int nProcs, unsigned int crr_procID)
 {
   // std::cout <<"In computeLogJointDensity_MPI_overSubLoci()\n";

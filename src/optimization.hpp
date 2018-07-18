@@ -16,8 +16,8 @@ class MaxPosterior
   Eigen::MatrixXd para_atCrr;
   Eigen::MatrixXd para_atPrev;
   
-  double durationOfSplitting_atPrev;
-  double durationOfSplitting_atCrr;
+  double timeOfSplittingCompletion_atPrev;
+  double timeOfSplittingCompletion_atCrr;
   
   std::vector<double> priorsMax;
   std::vector<long double> posterior_atCrr;

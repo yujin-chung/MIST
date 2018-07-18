@@ -120,11 +120,11 @@ private:
 
   
   // 2018/07/16 - YC
-  double durationOfSplitting; // the duration of populations/species splitting (fixed or estimated). Default: 0.  
+  double timeOfSplittingCompletion; // the time of populations/species splittingcompletion (fixed or estimated). Default: 0.  
   unsigned int migband;
   // 0 if migration allows constantly after the splitting. (Default)
-  // 1 if migration does not allow some time after splitting. "durationOfSplitting" is estimated
-  // 2 if migration does not allow some time after splitting. "durationOfSplitting" is fixed and given by the command line.
+  // 1 if migration does not allow some time after splitting. "timeOfSplittingCompletion" is estimated
+  // 2 if migration does not allow some time after splitting. "timeOfSplittingCompletion" is fixed and given by the command line.
   
 
   unsigned int MLmodes; 
@@ -239,7 +239,7 @@ public:
   unsigned int get_checkpoint(){return checkpoint;}
   unsigned int get_howOften_checkpoint(){return howOften_checkpoint;}
 
-  double get_durationOfSplitting(){return durationOfSplitting;}
+  double get_timeOfSplittingCompletion(){return timeOfSplittingCompletion;}
   unsigned int get_migband(){return migband;}
 };
 

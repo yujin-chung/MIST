@@ -68,7 +68,7 @@ void popTree::replacePara(Eigen::MatrixXd listPara)
   if(age>0) // not a single population
     {      
       // 2018/07/17 YC
-      durationOfSplitting = listPara(0,6);
+      timeOfSplittingCompletion = listPara(0,6);
       
       double popSize = listPara(0,0);
       desc[0]->assign_populationSize(popSize);
@@ -140,10 +140,15 @@ void popTree::replacePara(Eigen::MatrixXd listPara)
 
 void popTree::initialize_popTree_recursion(IM im, std::string newickTree, Eigen::Vector3d paraMax)
 {
+
+  
+  std::cout <<"\nIn popTree::initialize_popTree_recursion()\n";
+  std::cout <<"\nnewickTree: "<< newickTree <<" newickTree.size()=" <<newickTree.size() <<"\n";
+  
   double para = 0.0;
   
   // 2018/07/16
-  durationOfSplitting = im.get_durationOfSplitting();
+  timeOfSplittingCompletion = im.get_timeOfSplittingCompletion();
   migband= im.get_migband();
   
   if(newickTree.size()>0 && newickTree.compare(0,1,";")!=0)
@@ -156,18 +161,19 @@ void popTree::initialize_popTree_recursion(IM im, std::string newickTree, Eigen:
 	  //-- splitting time --//
 	  if(im.get_ancPop() == 1) // isolation model
 	    {
+	      para = runiform()*paraMax(1);
+	      
 	      // 2018/07/16 - YC
 	      if(migband == 1) // estimated
 		{
-		  para = runiform()*paraMax(1);
-		  desc[no_assignedChildren]->assign_durationOfSplitting(runiform()*para);
+		  desc[no_assignedChildren]->assign_timeOfSplittingCompletion(runiform()*para);
 		}
 	      else if(migband == 2) //fixed
 		{
-		  para = durationOfSplitting + runiform()*(paraMax(1)-durationOfSplitting);
+		  para = timeOfSplittingCompletion + runiform()*(paraMax(1)-timeOfSplittingCompletion);
 		  if(para < 0)
 		    {
-		      std::cout <<"\n\n Error: The upperbound of population splitting time should be larger than the duration of splitting.\n\n";
+		      std::cout <<"\n\n Error: The upperbound of population splitting time should be larger than the time of splitting completion.\n\n";
 		    }			    
 		}
 	    }
@@ -193,16 +199,20 @@ void popTree::initialize_popTree_recursion(IM im, std::string newickTree, Eigen:
 	  desc[no_assignedChildren]->assign_popID(get_popID()+1);
 	  desc[no_assignedChildren]->no_assignedChildren = 0;
 	  desc[no_assignedChildren]->assign_par(this);
-	  desc[no_assignedChildren]->initialize_popTree_recursion(im,newickTree.erase(0,1),paraMax);
+	  
+	  if(newickTree.size()>1)
+	    desc[no_assignedChildren]->initialize_popTree_recursion(im,newickTree.erase(0,1),paraMax);
 	  no_assignedChildren++;
 	}
       else if(newickTree.compare(0,1,")")==0)
 	{	  
-	  par->initialize_popTree_recursion(im,newickTree.erase(0,1),paraMax);
+	  if(newickTree.size()>1)
+	    par->initialize_popTree_recursion(im,newickTree.erase(0,1),paraMax);
 	}
       else if(newickTree.compare(0,1,",")==0)
 	{
-	  initialize_popTree_recursion(im,newickTree.erase(0,1),paraMax);
+	  if(newickTree.size()>1)
+	    initialize_popTree_recursion(im,newickTree.erase(0,1),paraMax);
 	}
       else
 	{
@@ -233,7 +243,8 @@ void popTree::initialize_popTree_recursion(IM im, std::string newickTree, Eigen:
 	  desc[no_assignedChildren]->assign_popID((unsigned)n);
 	  desc[no_assignedChildren]->assign_par(this);
 	  no_assignedChildren++;
-	  initialize_popTree_recursion(im, newickTree.erase(0,1),paraMax);
+	  if(newickTree.size()>1)
+	    initialize_popTree_recursion(im, newickTree.erase(0,1),paraMax);
 	}
     }
   return;
@@ -249,14 +260,19 @@ void popTree::initialize_popTree(IM im, unsigned int processID)
   Eigen::Vector3d paraMax = im.get_paraMax();
 
   // 2018/07/16
-  durationOfSplitting = im.get_durationOfSplitting();
+  timeOfSplittingCompletion = im.get_timeOfSplittingCompletion();
   migband= im.get_migband();
+  // std::cout <<"migband = "<< migband <<"\n";
   
   if(processID == 0)
     {
 	std::cout << "Initialization of population tree....\n";
     }
 
+  
+  // std::cout <<"\nIn popTree::initialize_popTree()\n";
+  // std::cout <<"\nnewickTree: "<< newickTree <<"\n";
+  
   double para = 0.0;
   if(newickTree.compare(0,1,"(")==0)
     {
@@ -281,7 +297,7 @@ void popTree::initialize_popTree(IM im, unsigned int processID)
 	    {
 	      age = 0;
 	      isTip =1;
-	      durationOfSplitting = 0;
+	      timeOfSplittingCompletion = 0;
 	    }
 	  else // single population
 	    {
@@ -311,6 +327,7 @@ void popTree::initialize_popTree(IM im, unsigned int processID)
     std::cout << "The input population tree is not in newick format.\n";
   
   // Initialize migration rates
+  std::cout <<"\nInitialize migration rates\n";
   if(age>0)
     {
       para = paraMax(2);

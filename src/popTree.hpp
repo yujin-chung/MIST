@@ -42,11 +42,11 @@ private:
 
   
   // 2018/07/16 - YC
-  double durationOfSplitting; // the duration of populations/species splitting (fixed or estimated). Default: 0.  
+  double timeOfSplittingCompletion; // the time of populations/species splitting completion (fixed or estimated). Default: 0.  
   unsigned int migband;
   // 0 if migration allows constantly after the splitting. (Default)
-  // 1 if migration does not allow some time after splitting. "durationOfSplitting" is estimated
-  // 2 if migration does not allow some time after splitting. "durationOfSplitting" is fixed and given by the command line.
+  // 1 if migration does not allow some time after splitting. "timeOfSplittingCompletion" is estimated
+  // 2 if migration does not allow some time after splitting. "timeOfSplittingCompletion" is fixed and given by the command line.
   
 
 	// old version
@@ -95,7 +95,7 @@ public:
   void assign_par(popTree* tr){par = tr;}
 
   // 2018/07/16
-  void assign_durationOfSplitting(double t){durationOfSplitting=t;}
+  void assign_timeOfSplittingCompletion(double t){timeOfSplittingCompletion=t;}
   
   void set_isTip(unsigned int tip){isTip = tip; return;}
   
@@ -119,7 +119,7 @@ public:
   popTree* get_firstChild(){return desc[0];}
   popTree* get_secondChild(){return desc[1];}
   
-  double get_durationOfSplitting(){return  durationOfSplitting;}
+  double get_timeOfSplittingCompletion(){return  timeOfSplittingCompletion;}
   unsigned int get_migband(){return migband;}
 
   void print_poptree();

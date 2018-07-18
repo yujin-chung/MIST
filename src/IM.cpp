@@ -58,7 +58,7 @@ unsigned int IM::initialization(int argc, char *argv[], unsigned int processID)
   sameMigrationRates = 0;
   checkpoint = 0;
   ancPop=1;
-  durationOfSplitting = 0;
+  timeOfSplittingCompletion = 0;
   migband = 0;
 
   locus locus_tmp;
@@ -105,19 +105,19 @@ unsigned int IM::initialization(int argc, char *argv[], unsigned int processID)
 	      {
 		migband = atoi(argv[counter+1]);
 		if(migband==0)
-		  durationOfSplitting = 0;
+		  timeOfSplittingCompletion = 0;
 		else if(migband == 1)
 		  {
-		    // if migband == 1, then "durationOfSplitting" will be estimated.
+		    // if migband == 1, then "timeOfSplittingCompletion" will be estimated.
 		  }
 		else if(migband == 2)
 		  {
 		    counter++;
-		    durationOfSplitting = atof(argv[counter+1]);
+		    timeOfSplittingCompletion = atof(argv[counter+1]);
 		  }
 		else
 		  {
-		    std::cout << "Error in command line: -b.\n MLmodes = "<< MLmodes<<" migband = "<<migband <<" durationOfSplitting = "<< durationOfSplitting <<" \n\n";
+		    std::cout << "Error in command line: -b.\n MLmodes = "<< MLmodes<<" migband = "<<migband <<" timeOfSplittingCompletion = "<< timeOfSplittingCompletion <<" \n\n";
 		  }		
 	      }
 	    break;

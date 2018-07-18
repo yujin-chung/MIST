@@ -4486,7 +4486,7 @@ double Chain::compute_logConditionalProb(unsigned int id_sample, unsigned int id
 
 
   // 2018/07/17 YC
-  double timeOfSplittingCompletion = poptree->get_durationOfSplitting();
+  double timeOfSplittingCompletion = poptree->get_timeOfSplittingCompletion();
   if(poptree->get_migband()!=0)
     {      
       std::vector<double> eventT_inc;
