@@ -4513,6 +4513,7 @@ double Chain::compute_logConditionalProb(unsigned int id_sample, unsigned int id
 
   
   // DELETE
+  /*
   if(crrProcID==0)
     {
       std::cout <<"\n\n In double Chain::compute_logConditionalProb(..)\n";
@@ -4520,12 +4521,12 @@ double Chain::compute_logConditionalProb(unsigned int id_sample, unsigned int id
       std::cout <<"splitting time = " << splittingTime <<" timeOfSplittingCompletion = " << timeOfSplittingCompletion <<"\n";
       std::cout <<"*iter = " << *iter << "\n";
     }
- 
+  */
   
   while(count_events <nGeneCopies-1 && iter!=eventT.end() && isfinite(logProb))
     { 
       // DELETE
-      std::cout << "*iter = " << *iter << "\n";
+      // std::cout << "*iter = " << *iter << "\n";
       
       if(*iter <=splittingTime)
 	{	  

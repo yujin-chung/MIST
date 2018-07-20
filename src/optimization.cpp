@@ -36,7 +36,7 @@ void MaxPosterior::initiate(IM im, popTree* poptree, Chain coldCh, unsigned int 
   unsigned int nPara_popSizes;
   
   // 2018/07/17 YC
-  timeOfSplittingCompletion_atPrev = 0;
+  // timeOfSplittingCompletion_atPrev = 0;
 
   if(poptree->get_age()==0) // single population
     {
@@ -69,7 +69,10 @@ void MaxPosterior::initiate(IM im, popTree* poptree, Chain coldCh, unsigned int 
 	    {
 	      nPara = 4; // three population sizes and a splitting time
 	      nPara_popSizes = 3;
-	    } 
+	    }
+
+	  // time of splitting completion
+	    nPara += 1;	    
 	}
       if(migRateMax !=0)
 	{
@@ -86,7 +89,9 @@ void MaxPosterior::initiate(IM im, popTree* poptree, Chain coldCh, unsigned int 
 	}
       */
     }
-  
+
+
+  // std::cout <<"nPara = "<< nPara <<"\n";
     
   para_atCrr.resize(nParaVectors,nPara);
   para_atPrev.resize(nParaVectors,nPara);
@@ -102,7 +107,7 @@ void MaxPosterior::initiate(IM im, popTree* poptree, Chain coldCh, unsigned int 
       else{
 	if(i < nPara_popSizes)
 	  priorsMax.push_back(im.get_popSizeMax());
-	else if(i==nPara-1 && ancPop ==1)
+	else if(i==nPara-2 && ancPop ==1)
 	  {	    
 	    priorsMax.push_back(im.get_splittingTimeMax());
 	  }
@@ -130,21 +135,46 @@ void MaxPosterior::initiate(IM im, popTree* poptree, Chain coldCh, unsigned int 
 		{
 		  para_temp = priorsMax.at(j)*runiform();
 
-		  // 2018/07/17 YC
-		  if(j==nPara-1 && ancPop == 1 )
+		  // 2018/07/20 YC
+		  if(j==nPara-2 && ancPop == 1 )
+		    {
+		      if(im.get_migband()==2) // given & fixed
+			{
+			  double fixedcompletiontime = im.get_timeOfSplittingCompletion();
+			  para_temp = fixedcompletiontime+(priorsMax.at(j)-fixedcompletiontime)*runiform();
+			}
+		    }
+		  
+		  if(j==nPara-1 && ancPop ==1)
 		    {
 		      if(im.get_migband()==1) // estimated
 			{
-			  timeOfSplittingCompletion_atPrev = para_temp*runiform();
+			  para_temp = para_atPrev(i,j-1)*runiform();
 			}
 		      else if(im.get_migband()==2) // given & fixed
 			{
-			  timeOfSplittingCompletion_atPrev = im.get_timeOfSplittingCompletion();
-			  para_temp = timeOfSplittingCompletion_atPrev+(priorsMax.at(j)-timeOfSplittingCompletion_atPrev)*runiform();
+			  para_temp = im.get_timeOfSplittingCompletion();
 			}
 		      else
+			para_temp = 0;		      
+		    }
+		  // 2018/07/17 YC
+		  /*
+		    if(j==nPara-1 && ancPop == 1 )
+		    {
+		    if(im.get_migband()==1) // estimated
+		    {
+			  timeOfSplittingCompletion_atPrev = para_temp*runiform();
+			  }
+			  else if(im.get_migband()==2) // given & fixed
+			  {
+			  timeOfSplittingCompletion_atPrev = im.get_timeOfSplittingCompletion();
+			  para_temp = timeOfSplittingCompletion_atPrev+(priorsMax.at(j)-timeOfSplittingCompletion_atPrev)*runiform();
+			  }
+			  else
 			timeOfSplittingCompletion_atPrev = 0;
-		    }	      
+			}	      
+		  */
 		}
 	      MPI::COMM_WORLD.Barrier();
 	      MPI::COMM_WORLD.Bcast(&para_temp, 1, MPI_DOUBLE, 0);
@@ -152,9 +182,11 @@ void MaxPosterior::initiate(IM im, popTree* poptree, Chain coldCh, unsigned int 
 	      para_atPrev(i,j)=para_temp;
 	      
 	      // 2018/07/17 YC
+	      /*
 	      MPI::COMM_WORLD.Barrier();
 	      MPI::COMM_WORLD.Bcast(&timeOfSplittingCompletion_atPrev, 1, MPI_DOUBLE, 0);
 	      MPI::COMM_WORLD.Barrier();
+	      */
 	    }
 	}
       else
@@ -172,9 +204,13 @@ void MaxPosterior::initiate(IM im, popTree* poptree, Chain coldCh, unsigned int 
     {
       // 2018/07/17 YC 
       Eigen::MatrixXd paraVector(1,7);
+      paraVector.setZero();
       
       if(poptree->get_age()==0)
 	{
+	  // 2018/07/20 YC
+	  paraVector(0,2) = para_atPrev(i,0); // ancestral population	  
+	  /*
 	  for(unsigned int j=0; j<6; j++)
 	    {
 	      if(j==2) // ancestral population
@@ -182,6 +218,7 @@ void MaxPosterior::initiate(IM im, popTree* poptree, Chain coldCh, unsigned int 
 	      else
 		paraVector(0,j) = 0;
 	    }
+	  */
 	}
       else
 	{
@@ -212,16 +249,18 @@ void MaxPosterior::initiate(IM im, popTree* poptree, Chain coldCh, unsigned int 
 	    {
 	      paraVector(0,4) = 0; paraVector(0,5) =0;
 	    }
+	  
 	  //-- splitting time --//
 	  if(ancPop == 1)
 	    {
-	      paraVector(0,5) = para_atPrev(i,nPara-1);
+	      paraVector(0,5) = para_atPrev(i,nPara-2);
+	      
+	      //-- time of splitting completion --//
+	      paraVector(0,6) = para_atPrev(i,nPara-1);
 	    }
 	  else // no ancestral population
 	    paraVector(0,5) =im.get_splittingTimeMax();
 
-	  //-- time of splitting completion --//
-	  paraVector(0,6) = timeOfSplittingCompletion_atPrev;
 	}
 
      
@@ -304,12 +343,17 @@ void MaxPosterior::DE_eachIter(IM im, popTree* poptree, Chain coldCh, unsigned i
 {
 
   Eigen::MatrixXd newPara;
+
+  // 2018/07/20 YC
   newPara.resize(1,nPara);
+  newPara.setZero();
+   
   for(unsigned int i=0; i<nParaVectors; i++)
     {
       unsigned int recombinationID = runiform_discrete(nPara);
       newPara.setZero();
       double newPara_each = 0.0;
+      // double new_timeOfSplittingCompletion = 0.0;
       // select base vectors
       unsigned int b1=i;
       unsigned int b2=i;
@@ -332,12 +376,55 @@ void MaxPosterior::DE_eachIter(IM im, popTree* poptree, Chain coldCh, unsigned i
 	      if(runiform() < CR ||  j== recombinationID)
 		{
 		  newPara_each = para_atPrev(b1,j)+F*(para_atPrev(b2,j)-para_atPrev(b3,j)); // differential mutation
-		  while(newPara_each <0 || newPara_each >priorsMax.at(j))
+		  if(im.get_migband()==0) 
 		    {
-		      if(newPara_each <0)
-			newPara_each = para_atPrev(b1,j)-runiform()*(para_atPrev(b1,j));
-		      if(newPara_each > priorsMax.at(j))
-			newPara_each = para_atPrev(b1,j)+runiform()*(priorsMax.at(j)-para_atPrev(b1,j));
+		      while(newPara_each <0 || newPara_each >priorsMax.at(j))
+			{
+			  if(newPara_each <0)
+			    newPara_each = para_atPrev(b1,j)-runiform()*(para_atPrev(b1,j));
+			  if(newPara_each > priorsMax.at(j))
+			    newPara_each = para_atPrev(b1,j)+runiform()*(priorsMax.at(j)-para_atPrev(b1,j));
+			}
+		    }
+		  else if(im.get_migband()>0 && j==nPara-2) // splitting time
+		    {
+		      if(im.get_migband()==1) // estimated
+			{
+			  while(newPara_each < 0 || newPara_each >priorsMax.at(j) )
+			    {
+			      if(newPara_each <0)
+				newPara_each = para_atPrev(b1,j)-runiform()*(para_atPrev(b1,j));
+			      if(newPara_each > priorsMax.at(j))
+				newPara_each = para_atPrev(b1,j)+runiform()*(priorsMax.at(j)-para_atPrev(b1,j));
+			    }
+			}
+		      else if(im.get_migband()==2) // fixed and given
+			{
+			  while(newPara_each <im.get_timeOfSplittingCompletion() || newPara_each >priorsMax.at(j) )
+			    {
+			      if(newPara_each <im.get_timeOfSplittingCompletion())
+				newPara_each = para_atPrev(b1,j)-runiform()*(para_atPrev(b1,j));
+			      if(newPara_each > priorsMax.at(j))
+				newPara_each = para_atPrev(b1,j)+runiform()*(priorsMax.at(j)-para_atPrev(b1,j));
+			    }
+			}
+		    }
+		  else if(im.get_migband()>0 && j==nPara-1) // time of splitting completion
+		    {
+		      if(im.get_migband()==1) // estimated
+			{
+			  while(newPara_each < 0 || newPara_each > newPara(0,j-1) )
+			    {
+			      if(newPara_each <0)
+				newPara_each = para_atPrev(b1,j)-runiform()*(para_atPrev(b1,j));
+			      if(newPara_each > priorsMax.at(j))
+				newPara_each = para_atPrev(b1,j)+runiform()*(priorsMax.at(j)-para_atPrev(b1,j));
+			    }
+			}
+		      else if(im.get_migband()==2) // fixed and given
+			{
+			  newPara_each = im.get_timeOfSplittingCompletion();
+			}
 		    }
 		  
 		  if(newPara_each <0 || newPara_each > priorsMax.at(j))
@@ -345,14 +432,33 @@ void MaxPosterior::DE_eachIter(IM im, popTree* poptree, Chain coldCh, unsigned i
 		      std::cout << "\n*** Error *** in map::DE_eachIter()\n";
 		    }
 		}
+
+	      
+	      // 2018/07/18 YC
+	      // updating timeOfSplittingCompletion
+	      /*
+	      if(poptree->get_age()>0 && im.get_ancPop() == 1 && j==5)
+		{		  
+		  if(im.get_migband() ==1) // estimated
+		    {
+		      
+		    }
+		  else if(im.get_migband()==2) // fixed & given
+		    {
+		    }	 
+		}
+	      */
 	    }
+	  
+	     
 	  MPI::COMM_WORLD.Barrier();
 	  MPI::COMM_WORLD.Bcast(&newPara_each, 1, MPI_DOUBLE, 0);
 	  MPI::COMM_WORLD.Barrier();
 	  newPara(0,j) = newPara_each;
 	} //END of for(unsigned int j=0; j<nPara; j++)
 
-      Eigen::MatrixXd paraVector(1,6);
+      Eigen::MatrixXd paraVector(1,7);
+      paraVector.setZero();
       unsigned int nPara_popSizes =1;
       if(poptree->get_age() ==0)// single population
 	{
@@ -395,8 +501,11 @@ void MaxPosterior::DE_eachIter(IM im, popTree* poptree, Chain coldCh, unsigned i
 	  else
 	    paraVector(0,4) = newPara(0,nPara_popSizes+1);
 	  //-- splitting time --//
-	  if(im.get_ancPop() == 1)	
-	    paraVector(0,5) = newPara(0,nPara-1);
+	  if(im.get_ancPop() == 1)
+	    {
+	      paraVector(0,5) = newPara(0,nPara-2);
+	      paraVector(0,6) = newPara(0,nPara-1);
+	    }
 	  else // no ancestral population
 	    paraVector(0,5) =im.get_splittingTimeMax();
 	}
@@ -413,6 +522,7 @@ void MaxPosterior::DE_eachIter(IM im, popTree* poptree, Chain coldCh, unsigned i
 	    }
 	  else // constant mutation rate scalars
 	    {
+	      // paraVector: 1x7 matrix
 	      logPosterior_newPara = computeLogJointDensity_MPI_overSubLoci(paraVector, im, poptree, coldCh, nProcs, crr_procID);  
 	    }
 	}

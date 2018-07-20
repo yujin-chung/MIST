@@ -142,8 +142,8 @@ void popTree::initialize_popTree_recursion(IM im, std::string newickTree, Eigen:
 {
 
   
-  std::cout <<"\nIn popTree::initialize_popTree_recursion()\n";
-  std::cout <<"\nnewickTree: "<< newickTree <<" newickTree.size()=" <<newickTree.size() <<"\n";
+  //  std::cout <<"\nIn popTree::initialize_popTree_recursion()\n";
+  // std::cout <<"\nnewickTree: "<< newickTree <<" newickTree.size()=" <<newickTree.size() <<"\n";
   
   double para = 0.0;
   
@@ -327,7 +327,7 @@ void popTree::initialize_popTree(IM im, unsigned int processID)
     std::cout << "The input population tree is not in newick format.\n";
   
   // Initialize migration rates
-  std::cout <<"\nInitialize migration rates\n";
+  //  std::cout <<"\nInitialize migration rates\n";
   if(age>0)
     {
       para = paraMax(2);
@@ -535,30 +535,33 @@ void popTree::print_node()
 
 void popTree::print_poptree()
 {
-	if(isTip == 1)
-		std::cout << "(" << popID << ");\n";
-	else
-	{
-		std::cout << "(";
-		try{
-			desc[0]->print_node();
-		}catch (std::exception &e) {
-			std::cout << "In popTree::print_poptree(). Can't access element desc[0] \n";
-		}
+  if(isTip == 1)
+    std::cout << "(" << popID << ");\n";
+  else
+    {
+      std::cout << "(";
+      try{
+	desc[0]->print_node();
+      }catch (std::exception &e) {
+	std::cout << "In popTree::print_poptree(). Can't access element desc[0] \n";
+      }
+      
+      std::cout << ",";
+      try{
+	desc[1]->print_node();
+      }catch (std::exception &e) {
+	std::cout << "In popTree::print_poptree(). Can't access element desc[1] \n";
+      }
+      std::cout << ")"<< popID <<";\n";
+    }
+  
+  //REMOVE
+  //std::cout << "testing\n";
 
-		std::cout << ",";
-		try{
-			desc[1]->print_node();
-		}catch (std::exception &e) {
-			std::cout << "In popTree::print_poptree(). Can't access element desc[1] \n";
-		}
-		std::cout << ")"<< popID <<";\n";
-	}
-
-	//REMOVE
-	//std::cout << "testing\n";
-
-	print_popSize();
+  std::cout <<"migband = "<< migband <<", timeOfSplittingCompletion = " << timeOfSplittingCompletion <<"\n";
+  
+  print_popSize();
+  
 }
 
 // print migration information
