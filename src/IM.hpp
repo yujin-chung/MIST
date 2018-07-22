@@ -241,6 +241,8 @@ public:
 
   double get_timeOfSplittingCompletion(){return timeOfSplittingCompletion;}
   unsigned int get_migband(){return migband;}
+
+  void set_timeOfSplittingCompletion(double t){timeOfSplittingCompletion = t;return;}
 };
 
 #endif /* IM_HPP_ */

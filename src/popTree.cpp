@@ -147,9 +147,6 @@ void popTree::initialize_popTree_recursion(IM im, std::string newickTree, Eigen:
   
   double para = 0.0;
   
-  // 2018/07/16
-  timeOfSplittingCompletion = im.get_timeOfSplittingCompletion();
-  migband= im.get_migband();
   
   if(newickTree.size()>0 && newickTree.compare(0,1,";")!=0)
     {
@@ -164,6 +161,7 @@ void popTree::initialize_popTree_recursion(IM im, std::string newickTree, Eigen:
 	      para = runiform()*paraMax(1);
 	      
 	      // 2018/07/16 - YC
+	      /*
 	      if(migband == 1) // estimated
 		{
 		  desc[no_assignedChildren]->assign_timeOfSplittingCompletion(runiform()*para);
@@ -176,6 +174,7 @@ void popTree::initialize_popTree_recursion(IM im, std::string newickTree, Eigen:
 		      std::cout <<"\n\n Error: The upperbound of population splitting time should be larger than the time of splitting completion.\n\n";
 		    }			    
 		}
+	      */
 	    }
 	  else // island model (no ancestral population)
 	    {
@@ -260,7 +259,6 @@ void popTree::initialize_popTree(IM im, unsigned int processID)
   Eigen::Vector3d paraMax = im.get_paraMax();
 
   // 2018/07/16
-  timeOfSplittingCompletion = im.get_timeOfSplittingCompletion();
   migband= im.get_migband();
   // std::cout <<"migband = "<< migband <<"\n";
   
@@ -299,9 +297,16 @@ void popTree::initialize_popTree(IM im, unsigned int processID)
 	      isTip =1;
 	      timeOfSplittingCompletion = 0;
 	    }
-	  else // single population
+	  else 
 	    {
 	      age = runiform()*paraMax(1);
+	      if(migband == 1)
+		{
+		  timeOfSplittingCompletion = runiform()*im.get_splittingTimeMax();
+		  im.set_timeOfSplittingCompletion(timeOfSplittingCompletion);
+		}
+	      else
+		timeOfSplittingCompletion = im.get_timeOfSplittingCompletion();
 	    }
 	}
       else // island model (no ancestral population)

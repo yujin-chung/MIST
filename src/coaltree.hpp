@@ -311,7 +311,7 @@ public:
   std::vector<unsigned int> get_nodePopID_withRank(unsigned int R);
 
   long double compute_logProb_zeroMig(unsigned int nGeneCopies, std::vector<double> coalT, std::vector<double> allPopSize, double splittingTime);
-  long double compute_logProb_zeroMig_toTheTimeOfSplittingCompletion(unsigned int nGeneCopies, std::vector<double> coalT, std::vector<double> allPopSize, double timeOfSplittingCompletion);
+  double compute_logProb_zeroMig_toTheTimeOfSplittingCompletion(unsigned int nGeneCopies, std::vector<double> coalT, std::vector<double> allPopSize, double timeOfSplittingCompletion);
   unsigned int compute_nCoalEvents(int label);
   unsigned int compute_maxNumLin(int label);
   std::list<double> compute_intervalCoalT(int label, double splittingTime, std::list<double> intervalCoalT);

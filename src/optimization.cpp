@@ -107,7 +107,7 @@ void MaxPosterior::initiate(IM im, popTree* poptree, Chain coldCh, unsigned int 
       else{
 	if(i < nPara_popSizes)
 	  priorsMax.push_back(im.get_popSizeMax());
-	else if(i==nPara-2 && ancPop ==1)
+	else if(i>=nPara-2 && ancPop ==1)
 	  {	    
 	    priorsMax.push_back(im.get_splittingTimeMax());
 	  }
@@ -133,7 +133,8 @@ void MaxPosterior::initiate(IM im, popTree* poptree, Chain coldCh, unsigned int 
 	      double para_temp = 0.0;
 	      if(crr_procID == 0)
 		{
-		  para_temp = priorsMax.at(j)*runiform();
+		  if(j<nPara-1)
+		    para_temp = priorsMax.at(j)*runiform();
 
 		  // 2018/07/20 YC
 		  if(j==nPara-2 && ancPop == 1 )
@@ -175,11 +176,15 @@ void MaxPosterior::initiate(IM im, popTree* poptree, Chain coldCh, unsigned int 
 			timeOfSplittingCompletion_atPrev = 0;
 			}	      
 		  */
+
+		  //  std::cout <<"i = "<<i <<"j="<<j <<" para_temp = "<< para_temp <<"\n";
 		}
 	      MPI::COMM_WORLD.Barrier();
 	      MPI::COMM_WORLD.Bcast(&para_temp, 1, MPI_DOUBLE, 0);
 	      MPI::COMM_WORLD.Barrier();
 	      para_atPrev(i,j)=para_temp;
+
+	      
 	      
 	      // 2018/07/17 YC
 	      /*
@@ -275,6 +280,9 @@ void MaxPosterior::initiate(IM im, popTree* poptree, Chain coldCh, unsigned int 
 	    }
 	  else // constant mutation rate scalars
 	    {
+
+	      // std::cout <<"paraVector = " << paraVector <<"\n";
+	      
 	      posterior_atPrev.at(i) = computeLogJointDensity_MPI_overSubLoci(paraVector, im, poptree, coldCh, nProcs, crr_procID); 
 	    }
 	}
@@ -376,7 +384,7 @@ void MaxPosterior::DE_eachIter(IM im, popTree* poptree, Chain coldCh, unsigned i
 	      if(runiform() < CR ||  j== recombinationID)
 		{
 		  newPara_each = para_atPrev(b1,j)+F*(para_atPrev(b2,j)-para_atPrev(b3,j)); // differential mutation
-		  if(im.get_migband()==0) 
+		  if(j < nPara-1) 
 		    {
 		      while(newPara_each <0 || newPara_each >priorsMax.at(j))
 			{
@@ -417,8 +425,13 @@ void MaxPosterior::DE_eachIter(IM im, popTree* poptree, Chain coldCh, unsigned i
 			    {
 			      if(newPara_each <0)
 				newPara_each = para_atPrev(b1,j)-runiform()*(para_atPrev(b1,j));
-			      if(newPara_each > priorsMax.at(j))
-				newPara_each = para_atPrev(b1,j)+runiform()*(priorsMax.at(j)-para_atPrev(b1,j));
+			      if(newPara_each > newPara(0,j-1))
+				{
+				  if(para_atPrev(b1,j) < newPara(0,j-1))
+				    newPara_each = para_atPrev(b1,j)+runiform()*(newPara(0,j-1)-para_atPrev(b1,j));
+				  else
+				    newPara_each = newPara(0,j-1)*runiform();
+				}
 			    }
 			}
 		      else if(im.get_migband()==2) // fixed and given
@@ -430,6 +443,7 @@ void MaxPosterior::DE_eachIter(IM im, popTree* poptree, Chain coldCh, unsigned i
 		  if(newPara_each <0 || newPara_each > priorsMax.at(j))
 		    {
 		      std::cout << "\n*** Error *** in map::DE_eachIter()\n";
+		      std::cout << "j = " << j <<" newPara_each = " << newPara_each << " priorsMax.at(j) = "<< priorsMax.at(j) << "\n";
 		    }
 		}
 
@@ -882,6 +896,8 @@ long double MaxPosterior::computeLogJointDensity_MPI_overSubLoci(Eigen::MatrixXd
 
   poptree->replacePara(demographicPara);
 
+  //  std::cout <<"here\n";
+  
   coldCh.compute_partialJointPosteriorDensity_overSubLoci(poptree, im, crr_procID, nProcs);
   std::vector<long double> logExpectationOfEachCoalProb = coldCh.get_logExpectationOfCoalProb();
   unsigned int numSubLoci = coldCh.getNumSubLoci();
