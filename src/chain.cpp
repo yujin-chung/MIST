@@ -172,7 +172,28 @@ void Chain::read_newickTrees_partial(IM im)
 
       if(locusID >=locusID_start && locusID <= locusID_end)
 	{
-	  // std::cout << "locusID = " << locusID  << " tree_string = " << tree_string <<"\n";
+	  /*
+	  if(cpuID ==0)
+	    {
+	      std::cout << "locusID = " << locusID  << " tree_string = " << tree_string <<"\n";
+	      std::cout << "length = " << tree_string.length() <<"\n";
+	      if(tree_string.length() ==1)
+		{
+		  tree_string = "(1:0,2:0);";
+		  std::cout <<" length of (1:0,2:0); is "<< tree_string.length() <<"\n";
+		  tree_string = ";";
+		}
+		  
+	    }
+	  */
+	  // YC 08/07/2018
+	  if(tree_string.length() <10)
+	    {
+	      std::cout <<"\n\n\tError becaused of the input file " << inputFile <<"\n";
+	      std::cout <<"\tOn line "<< locusID <<", the newick tree is "  << tree_string <<"\n";
+	      std::cout <<"\tMIST stopped.\n\n";
+	      exit (EXIT_FAILURE);
+	    }
 	  
 	  node* tree = new node;
 	  tree->convertFromNewick(tree_string,1);
