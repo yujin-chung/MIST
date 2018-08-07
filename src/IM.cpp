@@ -274,8 +274,10 @@ unsigned int IM::initialization(int argc, char *argv[], unsigned int processID)
 		      }else{// the file exists 
 			newickTreeFileName = argv[counter+1];
 			counter++;
+			// The below is redundant? - YC 08/07/2018
 			/**  YC 10/19/2016
 			 *   To check if the input file exists   **/
+			/*
 			bool FileExists = file_exist(argv[counter+1]);
 			execute = FileExists;
 			if(execute==0){ // The file does not exist or is not accessible.
@@ -283,8 +285,9 @@ unsigned int IM::initialization(int argc, char *argv[], unsigned int processID)
 			  std::cout <<"MIST stopped.\n";
 			  counter = argc;
 			}else{// the file exists			  
-			  SeqPopFileName = argv[counter+1];
-			}
+			*/
+			SeqPopFileName = argv[counter+1];
+			// }
 		      }
 		    }
 		}
