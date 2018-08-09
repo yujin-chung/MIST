@@ -391,8 +391,15 @@ void MaxPosterior::DE_eachIter(IM im, popTree* poptree, Chain coldCh, unsigned i
       if(logPosterior_newPara > posterior_atPrev.at(i))
 	{
 	  para_atCrr.row(i) = newPara;
-	  posterior_atCrr.at(i) = logPosterior_newPara;
+	  posterior_atCrr.at(i) = logPosterior_newPara;	  
+	}
+      else if(isinf(logPosterior_newPara) && isinf(posterior_atPrev.at(i)) )
+	{	  
+	  // YC 08/07/2018
+	  // If the current and new posteriors are negative infinity, the new parameter values are taken.
 	  
+	  para_atCrr.row(i) = newPara;
+	  posterior_atCrr.at(i) = logPosterior_newPara;	  
 	}
       else
 	{
