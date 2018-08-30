@@ -1923,6 +1923,8 @@ void Chain::compute_coalTimes_tipIDs(unsigned int iter, unsigned int id_locus, n
       if(coalTimes.at(iter).size() == 0)
 	coalTimes.at(iter).resize(n_loci);
       coalTimes.at(iter).at(id_locus).push_back(tree->age);
+
+      // std::cout <<"tree->age ="  << tree->age <<"\n";
     }
 
   if(tree->isTip == 0)

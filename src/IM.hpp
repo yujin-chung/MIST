@@ -26,7 +26,7 @@
 
 #include <fstream>
 
-using namespace std;
+// using namespace std;
 
 /***
  * for one locus. For multiple loci (or general case),
