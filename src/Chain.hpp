@@ -14,6 +14,7 @@
 #include <fstream>
 #include <time.h>
 #include <chrono>
+#include <iostream>
 #include "IM.hpp"
 #include "coaltree.hpp"
 

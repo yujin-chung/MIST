@@ -4185,11 +4185,13 @@ long double nodeSimple::compute_logProb_zeroMig(std::vector<double> coalT, std::
 {
   unsigned int nGeneCopies = coalT.size()+1; 
   long double logProb=0; 
+
   /*
   std::cout <<"splittingTime = "<< splittingTime <<"\n";
   std::cout <<"nodeLabel = " << nodeLabel <<"\n";
   std::cout <<"popSize = "<< popSize <<"\n";
   */
+  
   unsigned int nEvents = 0;
   if(nodeLabel==-1)
     {
@@ -4203,44 +4205,66 @@ long double nodeSimple::compute_logProb_zeroMig(std::vector<double> coalT, std::
       for(unsigned int i=0; i<allPopSize.size(); i++)
 	{
 	  unsigned int maxNumLin = compute_maxNumLin(i+1);
+	  
 	  // std::cout <<"popID = "<< i+1<< " maxNumLin = "<< maxNumLin <<"\n";
+	  
 	  std::list<double> intervalCoalT;
 	  intervalCoalT = compute_intervalCoalT(i+1, splittingTime, intervalCoalT);
 	  intervalCoalT.sort(); // increasing order
 	  unsigned int nCoal = intervalCoalT.size();
+
+	  // std::cout <<"nCoal = "<< nCoal <<"\n";
 	  // std::cout <<"intervalCoalT.size = "<< intervalCoalT.size()<<"\n";
 	  
 	  if(nCoal==0)
 	    logProb += (long double) -1*maxNumLin*(maxNumLin-1)*splittingTime/allPopSize.at(i);
 	  else
 	    {
-	      std::list<double>::iterator iter = intervalCoalT.begin();	      
+	      std::list<double>::iterator iter = intervalCoalT.begin();
+	      
+	      //  std::cout << "intervalCoalT = " << *iter <<"\n";
+	      
 	      if(*iter < splittingTime)
 		{
 		  double waitingTime = 0;
 		  double prevT=0;
-		  unsigned int nLin= maxNumLin;
+		  double nLin= (double) maxNumLin;
 		  for(iter; iter!=intervalCoalT.end(); iter++)
 		    {
 		      waitingTime = *iter -prevT;
 		      logProb += log(2/allPopSize.at(i)) - nLin*(nLin-1)*waitingTime/allPopSize.at(i);
+
+		      // std::cout <<"waitingTime = "<<waitingTime <<" nLin = "<< nLin <<"\n";
+		      // std::cout <<"logProb = "<< logProb <<"\n";
+		      
 		      prevT = *iter;
 		      nLin--;
 		    }	
 		  waitingTime = splittingTime -prevT;
-		  logProb += -nLin*(nLin-1)*waitingTime/allPopSize.at(i);	  
-		  
+		  logProb += -1*nLin*(nLin-1)*waitingTime/allPopSize.at(i);
+
+		  /*
+		  std::cout <<"waitingTime = "<<waitingTime <<" nLin = "<< nLin <<"\n";
+		  std::cout <<"allPopSize.at(i) = "<< allPopSize.at(i) <<"\n";
+		  std::cout <<"-1*nLin*(nLin-1)*waitingTime/allPopSize.at(i) = " << -1*nLin*(nLin-1)*waitingTime/allPopSize.at(i) <<"\n";
+		  std::cout <<"logProb = "<< logProb <<"\n";
+		  */
 		}
 	      else
 		{
 		  double waitingTime = 0;
 		  double prevT=splittingTime;
-		  unsigned int nLin= maxNumLin;
+		  double nLin = (double) maxNumLin;
 		  std::list<double>::iterator iter = intervalCoalT.begin();
 		  for(iter; iter!=intervalCoalT.end(); iter++)
 		    {
 		      waitingTime = *iter -prevT;
 		      logProb += log(2/allPopSize.at(i)) - nLin*(nLin-1)*waitingTime/allPopSize.at(i);
+
+		      
+		      //  std::cout <<"waitingTime = "<<waitingTime <<" nLin = "<< nLin <<"\n";
+
+		      
 		      prevT = *iter;
 		      nLin--;
 		      
@@ -4279,6 +4303,9 @@ long double Chain::compute_logConditionalProb_zeroMig(unsigned int id_sample, un
   std::list<double>::iterator iter = eventT.end();
   for(iter=eventT.begin(); iter!=eventT.end(); iter++)
     {
+      // REMOVE
+      // std::cout <<"coalTimes = " << *iter <<"\n";
+      
       eventT_inc.push_back(*iter);
     }
 
@@ -6262,10 +6289,11 @@ void Chain::compute_partialJointPosteriorDensity_overSubLoci_ESS(popTree* poptre
   return;	
 }
 
+
 // YC 5/11/2016
 void Chain::compute_partialJointPosteriorDensity_overSubLoci(popTree* poptree, IM im, unsigned int crrProcID, unsigned int nProcs)
 { 
-  // std::cout <<"In compute_partialJointPosteriorDensity_overSubLoci()\n";
+  //   std::cout <<"In compute_partialJointPosteriorDensity_overSubLoci()\n";
   
   std::chrono::high_resolution_clock::time_point start_t, end_t;
   
