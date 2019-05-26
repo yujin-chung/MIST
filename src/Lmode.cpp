@@ -4271,6 +4271,21 @@ long double nodeSimple::compute_logProb_zeroMig(std::vector<double> coalT, std::
 		    }			  
 		}
 	    }
+	  if(isnan(logProb)==1)
+	    {
+	      std::cout <<"\nIn long double nodeSimple::compute_logProb_zeroMig()\n";
+	      std::cout << "Error: logProb = " << logProb <<"\n";
+	      std::cout <<" splittingTime = " << splittingTime<<"\n";
+	      std::cout <<"intervalCoalT = ";
+	      for(auto tt:  intervalCoalT)	      
+		std::cout <<tt <<" ";
+	      std::cout <<"\n";	      
+	      std::cout <<"allPopSize = ";
+	      for(unsigned int ii=0; ii<allPopSize.size(); ii++)
+		std::cout <<allPopSize.at(ii) <<" ";
+	      std::cout <<"(current popsize = "<<allPopSize.at(i)<<")\n";
+	      
+	    }
 	  // std::cout << "logProb = " << logProb <<"\n";
 	} // END of for(unsigned int i=0; i<allPopSize.size(); i++)  
     }
