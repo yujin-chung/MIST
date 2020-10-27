@@ -38,6 +38,14 @@ public:
 class Migration
 {
 private:
+  
+  // 2020-10-27 YC
+  // 'popTree' structure has been modified as new class "popNode" was introduced
+  unsigned int fromPopID; // the source popID (backward in time)
+  std::vector<unsigned int> toPopIDs; // the list of recipients (backward in time)
+  std::vector<double> migRates; // the list of migration rates.
+  
+  //---------------------------------//
 	unsigned int popID; /// migration to the population with this popID. Backward in time.
 	double migRate;
 
