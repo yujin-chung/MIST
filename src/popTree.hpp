@@ -13,7 +13,7 @@
 // 2020-10-27 YC creating a node for population tree
 class popNode
 {
-  priviate:
+  private:
   
   unsigned int isRoot; // 1 if root node; 0 otherwise
   unsigned int isTip; // 1 if tip; 0 otherwise
@@ -30,7 +30,7 @@ public:
   unsigned int get_isTip(){return isTip;}
   unsigned int get_popID(){return popID;}
   
-}
+};
 
 
 
@@ -71,8 +71,8 @@ private:
 
   unsigned int nEpochs; // the number of epochs (defined by the splitting times)
   std::vector<double> splittingTimes; // the list of splitting times in ascending order (smallest to largest). The length of splittingTimes is the same as nEpochs.
-  std::vector< std::vector<unsigned int>> popIDs_eachEpoch; // the list of population ids in each epoch
-  // stopped here. added the vector of migration rates for each epoch.
+  std::vector< std::vector<unsigned int>> popIDs_eachEpoch; // the list of population ids of each epoch
+  std::vector< std::vector<Migraion*>> mig_eachEpoch; // the list of migrations of each epoch.
   
   
   
