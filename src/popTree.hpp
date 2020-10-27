@@ -10,6 +10,31 @@
 #include "Eigen/Dense"
 #include "IM.hpp"
 
+// 2020-10-27 YC creating a node for population tree
+class popNode
+{
+  priviate:
+  
+  unsigned int isRoot; // 1 if root node; 0 otherwise
+  unsigned int isTip; // 1 if tip; 0 otherwise
+  unsigned int popID; 
+	popNode *par;
+  popNode *desc[2];
+	double age;
+	double populationSize;
+
+public:
+  
+  popNode();
+  unsigned int get_isRoot(){return isRoot;}
+  unsigned int get_isTip(){return isTip;}
+  unsigned int get_popID(){return popID;}
+  
+}
+
+
+
+
 class Migration
 {
 private:
@@ -28,6 +53,26 @@ public:
 class popTree
 {
 private:
+
+  // 2020-10-27 YC
+  // 'popTree' structure has been modified as new class "popNode" was introduced
+  unsigned int nPopsAtTips; // the number of populations at present
+  
+  popNode *rootNode; // the root node of a population tree.
+  std::vector<popNode*> popNodeList; // the list of nodes of a population tree in the order of their population IDs (starting from 1).
+
+  unsigned int nEpochs; // the number of epochs (defined by the splitting times)
+  std::vector<double> splittingTimes; // the list of splitting times in ascending order (smallest to largest). The length of splittingTimes is the same as nEpochs.
+  std::vector< std::vector<unsigned int>> popIDs_eachEpoch; // the list of population ids in each epoch
+  // stopped here. added the vector of migration rates for each epoch.
+  
+  
+  
+
+  
+
+  //--------------------------------------------//
+  
 	unsigned int isRoot;
 	unsigned int isTip;
 	unsigned int popID;
@@ -133,6 +178,9 @@ public:
   // void replacePara(unsigned int ancPop,Eigen::MatrixXd listPara);
   void replacePara(Eigen::MatrixXd listPara);
 };
+
+
+
 
 
 
