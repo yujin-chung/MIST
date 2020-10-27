@@ -135,8 +135,6 @@ public:
 };
 
 
-// REMOVE
-int test();
 
 
 #endif /* POPTREE_HPP_ */
