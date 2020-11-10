@@ -504,8 +504,10 @@ int main (int argc, char *argv[])
 	  clock_t clock_start_Lmode = clock();
 	  
 	  	  
-	  poptree->initialize_popTree(im, currentid); 
-	  // coldCh.prepare_Lmode(poptree);
+	  poptree->initialize_popTree_crrversion(im, currentid); // the current version. 
+	  // poptree->initialize_popTree(im, currentid); // the new version to use 2020-11-10
+
+	  
 	  clock_t clock_end = clock();
 	  
 	  /*

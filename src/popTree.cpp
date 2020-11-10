@@ -133,6 +133,93 @@ void popTree::replacePara(Eigen::MatrixXd listPara)
 }
 
 
+// 2020-11-10
+/**
+ * @param paraMax contains (popSizeMax,splittingTimeMax,migRateMax)
+ */
+void popTree::initialize_popTree(IM im, unsigned int processID)
+{
+  std::string newickTree = im.get_poptree_string();
+  unsigned int ancPop = im.get_ancPop(); //1 if isolation model; 0 if island model.
+  Eigen::Vector3d paraMax = im.get_paraMax();
+
+  if(processID == 0)
+    {
+	std::cout << "Initialization of population tree....\n";
+    }
+
+  double para = 0.0;
+  if(newickTree.compare(0,1,"(")==0)
+    {
+      
+      newickTree.erase(0,1);
+      newickTree.erase(newickTree.size()-1,1);
+
+      assign_isRoot_isTip(1,0);
+      char name = newickTree.at(newickTree.size()-1);
+      if(newickTree.compare(newickTree.size()-1,1,")")==0)
+	{
+	  name = newickTree.at(newickTree.size()-2);
+	}
+      name = name - '0';
+      int n = name;
+     
+      popID = (unsigned) n;
+      //-- splitting time --//
+      if(im.get_ancPop() == 1) // isolation model
+	{
+	  if(name <= 2) // if ancestral popID =2, it is the case of a sigle population
+	    {
+	      age = 0;
+	      isTip =1;
+	    }
+	  else
+	    age = runiform()*paraMax(1);
+	}
+      else // island model (no ancestral population)
+	age = paraMax(1);
+
+      //-- ancestral population size --//      
+      if(im.get_ancPop() == 1) // isolation model
+	para = runiform() * paraMax(0);
+      else // island model (no ancestral population)
+	para = 0;
+      populationSize=para;
+      no_assignedChildren = 0;
+      
+      
+      newickTree.erase(newickTree.size()-2,2);
+      
+      if(age > 0)
+	initialize_popTree_recursion(im, newickTree, paraMax);
+    }
+  else
+    std::cout << "The input population tree is not in newick format.\n";
+  
+  // Initialize migration rates
+  if(age>0)
+    {
+      para = paraMax(2);
+      initialize_migrations(im,para, processID);
+    }
+  if(processID==0)
+    {
+      if(age>0)
+	{
+	  std::cout << "From\tTo\tMigrationRate\n";
+	  std::cout << desc[0]->get_popID() << "\t" << desc[0]->get_pop2mig(0)->get_popID()
+		    <<"\t" << desc[0]->get_migRate(0) <<"\n";
+	  std::cout << desc[1]->get_popID() << "\t" << desc[1]->get_pop2mig(0)->get_popID()
+		    <<"\t" << desc[1]->get_migRate(0) <<"\n";
+	}
+      print_poptree();
+      
+      std::cout << "End of population tree initialization.\n\n";
+    }
+  
+  return;
+}
+
 
 void popTree::initialize_popTree_recursion(IM im, std::string newickTree, Eigen::Vector3d paraMax)
 {
@@ -215,10 +302,10 @@ void popTree::initialize_popTree_recursion(IM im, std::string newickTree, Eigen:
 /**
  * @param paraMax contains (popSizeMax,splittingTimeMax,migRateMax)
  */
-void popTree::initialize_popTree(IM im, unsigned int processID)
+void popTree::initialize_popTree_crrversion(IM im, unsigned int processID)
 {
   std::string newickTree = im.get_poptree_string();
-  unsigned int ancPop = im.get_ancPop();
+  unsigned int ancPop = im.get_ancPop(); //1 if isolation model; 0 if island model.
   Eigen::Vector3d paraMax = im.get_paraMax();
 
   if(processID == 0)

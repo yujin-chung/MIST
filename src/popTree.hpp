@@ -64,7 +64,7 @@ private:
 
   // 2020-10-27 YC
   // 'popTree' structure has been modified as new class "popNode" was introduced
-  unsigned int nPopsAtTips; // the number of populations at present
+  unsigned int nPopsAtTips; // the number of populations at present (at tips)
   
   popNode *rootNode; // the root node of a population tree.
   std::vector<popNode*> popNodeList; // the list of nodes of a population tree in the order of their population IDs (starting from 1).
@@ -72,7 +72,7 @@ private:
   unsigned int nEpochs; // the number of epochs (defined by the splitting times)
   std::vector<double> splittingTimes; // the list of splitting times in ascending order (smallest to largest). The length of splittingTimes is the same as nEpochs.
   std::vector< std::vector<unsigned int>> popIDs_eachEpoch; // the list of population ids of each epoch
-  std::vector< std::vector<Migraion*>> mig_eachEpoch; // the list of migrations of each epoch.
+  std::vector< std::vector<Migration*> > mig_eachEpoch; // the list of migrations of each epoch.
   
   
   
@@ -125,7 +125,8 @@ public:
   void deletePopTree();
 
   void initialization(IM im);
-  void initialize_popTree(IM im, unsigned int processID);
+  void initialize_popTree(IM im, unsigned int processID); // 2020-11-10 this will be the new version.
+  void initialize_popTree_crrversion(IM im, unsigned int processID); // to delete
   void initialize_popTree_recursion(IM im, std::string newickTree, Eigen::Vector3d paraMax);
   void initialize_migrations_recursion(IM im,std::vector<popTree*> pops, double rateMax);
   void initialize_migrations(IM im,double rateMax, unsigned int processID);
