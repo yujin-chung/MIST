@@ -13,7 +13,7 @@
 // 2020-10-27 YC creating a node for population tree
 class popNode
 {
-  priviate:
+  private:
   
   unsigned int isRoot; // 1 if root node; 0 otherwise
   unsigned int isTip; // 1 if tip; 0 otherwise
@@ -30,7 +30,7 @@ public:
   unsigned int get_isTip(){return isTip;}
   unsigned int get_popID(){return popID;}
   
-}
+};
 
 
 
